@@ -18,13 +18,10 @@ def main():
     print("Real-Time Biomechanical Exercise Form Analysis - DEMO")
     print("Exercise: Squats")
     print("="*60)
-    print("
-Controls:")
+    print("Controls:")
     print("  'q' - Quit")
     print("  'r' - Reset rep count")
-    print("
-Starting camera...
-")
+    print("Starting camera...")
     
     # Initialize components
     detector = PoseDetector(model_complexity=1)
@@ -134,8 +131,7 @@ Starting camera...
     cv2.destroyAllWindows()
     detector.close()
     
-    print("
-Demo ended.")
+    print("Demo ended.")
     print(f"Total reps completed: {analyzer.rep_count}")
 
 if __name__ == "__main__":
