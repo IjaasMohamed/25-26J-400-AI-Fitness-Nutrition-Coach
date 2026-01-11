@@ -1,5 +1,7 @@
 # FitForge AI: AI-Powered Personalized Gym Assistant
 
+Repository Link : https://github.com/IjaasMohamed/25-26J-400-AI-Fitness-Nutrition-Coach/tree/main
+
 ## Project Overview
 
 **FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer. It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience.
