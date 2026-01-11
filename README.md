@@ -1,88 +1,87 @@
 # FitForge AI: AI-Powered Personalized Gym Assistant
 
-![Status](https://img.shields.io/badge/Status-In%20Development-blue)
-![Platform](https://img.shields.io/badge/Platform-Android-green)
-![Tech](https://img.shields.io/badge/AI-TensorFlow%20%7C%20YOLOv11-orange)
-
 ## 📖 Project Overview
 
-**FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer[cite: 12].It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience[cite: 13].
+**FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer. It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience.
 
-Unlike standard apps that rely on manual input and generic templates, FitForge AI uses computer vision and predictive analytics to autonomously track exercises, analyze form in real-time, and generate dynamic workout schedules based on user performance and recovery needs[cite: 30, 168, 351].
+Unlike standard apps that rely on manual input and generic templates, FitForge AI uses computer vision and predictive analytics to autonomously track exercises, analyze form in real-time, and generate dynamic workout schedules based on user performance and recovery needs.
+
+![alt text](image-2.png)
 
 ---
 
 ## 🚩 Problem Statement
 
-* [cite_start]**Manual Distractions:** Traditional apps require users to manually input data (reps/sets) or use touch controls, which breaks focus and is impractical during intense exercise[cite: 45, 169].
-* [cite_start]**Lack of Guidance:** Novice users often suffer from injuries due to incorrect form, with no real-time feedback available outside of expensive personal trainers[cite: 346].
-* [cite_start]**Generic Planning:** Most apps provide "one-size-fits-all" schedules that fail to adapt to individual recovery rates and performance fluctuations[cite: 29].
-* [cite_start]**Device Dependency:** Advanced tracking often requires expensive specialized hardware or wearables[cite: 276].
+Current fitness solutions often fail because they rely on manual input (which is impractical during exercise), provide "one-size-fits-all" schedules that don't adapt to the user, and lack real-time feedback on exercise technique. This leads to ineffective workouts and increased injury risk.
+
+* **Manual Distractions:** Traditional apps require users to manually input data (reps/sets) or use touch controls, which breaks focus and is impractical during intense exercise.
+* **Lack of Guidance:** Novice users often suffer from injuries due to incorrect form, with no real-time feedback available outside of expensive personal trainers.
+* **Generic Planning:** Most apps provide static schedules that fail to adapt to individual recovery rates and performance fluctuations.
+* **Device Dependency:** Advanced tracking often requires expensive specialized hardware or wearables.
+
+---
 
 ## 💡 Key Features
 
 ### 1. Zero-Interaction Fitness Tracking
 A truly hands-free experience that allows users to focus solely on their workout.
-* [cite_start]**Automated Recognition:** Uses computer vision (YOLOv11) to autonomously detect exercise start and end times[cite: 186, 232].
-* [cite_start]**Smart Counting:** Automatically tracks sets and repetitions without manual input[cite: 187].
-* [cite_start]**Flow Management:** Automatically calculates and manages rest periods between sets[cite: 226].
+* **Automated Recognition:** Uses computer vision (YOLOv11) to autonomously detect exercise start and end times.
+* **Smart Counting:** Automatically tracks sets and repetitions without manual input.
+* **Flow Management:** Automatically calculates and manages rest periods between sets.
 
 ### 2. Real-Time Biomechanical Form Analysis
 Functions as a vigilant spotter to ensure safety and effectiveness.
-* [cite_start]**Skeletal Tracking:** Tracks 33 body keypoints at over 30 FPS using on-device processing[cite: 352].
-* [cite_start]**Angle Calculation:** Measures critical joint angles (knees, elbows, spine) with high accuracy (±5 degrees) to detect deviations[cite: 353].
-* [cite_start]**Instant Feedback:** Provides visual and audio corrective cues within 100ms of detecting an error to prevent injury[cite: 354].
+* **Skeletal Tracking:** Tracks 33 body keypoints at over 30 FPS using on-device processing.
+* **Angle Calculation:** Measures critical joint angles (knees, elbows, spine) with high accuracy (±5 degrees) to detect deviations.
+* **Instant Feedback:** Provides visual and audio corrective cues within 100ms of detecting an error to prevent injury.
 
 ### 3. Intelligent Workout Forecasting
 Replaces static templates with dynamic, AI-driven planning.
-* [cite_start]**Adaptive Scheduling:** Generates personalized workout plans that evolve based on historical performance and body data[cite: 17, 30].
-* [cite_start]**Image-Based Analysis:** Analyzes body composition via smartphone images to tailor fitness plans[cite: 63, 128].
-* [cite_start]**Progressive Overload:** Forecasts future workout needs to ensure consistent progress[cite: 98].
+* **Adaptive Scheduling:** Generates personalized workout plans that evolve based on historical performance and body data.
+* **Image-Based Analysis:** Analyzes body composition via smartphone images to tailor fitness plans.
+* **Progressive Overload:** Forecasts future workout needs to ensure consistent progress.
 
 ### 4. Predictive Health Analytics
 Proactive insights to manage long-term health and performance.
-* [cite_start]**Recovery Estimation:** Predicts recovery duration based on heart rate, calorie expenditure, and workload[cite: 319].
-* [cite_start]**Risk Detection:** Identifies patterns indicating overtraining or potential injury risks before they occur[cite: 20, 298].
-* [cite_start]**Performance Forecasting:** Models future strength and endurance trends to set realistic goals[cite: 320].
+* **Recovery Estimation:** Predicts recovery duration based on heart rate, calorie expenditure, and workload.
+* **Risk Detection:** Identifies patterns indicating overtraining or potential injury risks before they occur.
+* **Performance Forecasting:** Models future strength and endurance trends to set realistic goals.
 
 ---
 
 ## 🏗 System Architecture
 
-[cite_start]The system operates using a hybrid architecture balancing on-device processing for low latency with cloud computing for heavy data analysis[cite: 22].
+The system operates using a hybrid architecture balancing on-device processing for low latency with cloud computing for heavy data analysis.
 
-* [cite_start]**Client Layer:** Native Android App handling User Interface, Sensor Data, and Camera Input[cite: 103].
-* [cite_start]**AI Engine Layer:** Contains modules for Form Analysis, zero-interaction tracking, and Predictive Analytics[cite: 103].
-* [cite_start]**Cloud Data Layer:** Manages User Profiles, Exercise Databases, and Historical Logs[cite: 103].
+* **Client Layer:** Native Android App handling User Interface, Sensor Data, and Camera Input.
+* **AI Engine Layer:** Contains modules for Form Analysis, Zero-Interaction Tracking, and Predictive Analytics.
+* **Cloud Data Layer:** Manages User Profiles, Exercise Databases, and Historical Logs.
+
+---
 
 ## 🛠 Technology Stack
 
 ### Mobile & Frontend
-* [cite_start]**Platform:** Android (Native) [cite: 137]
-* [cite_start]**IDE:** Android Studio [cite: 108]
+* **Platform:** Android (Native)
+* **IDE:** Android Studio
 
 ### AI & Machine Learning
-* [cite_start]**Languages:** Python [cite: 109]
-* [cite_start]**Frameworks:** TensorFlow, PyTorch [cite: 110]
-* [cite_start]**Vision Engine:** YOLOv11 (Pose Estimation) [cite: 232]
+* **Languages:** Python
+* **Frameworks:** TensorFlow, PyTorch
+* **Vision Engine:** YOLOv11 (Pose Estimation)
 * **Algorithms:**
-    * [cite_start]Convolutional Neural Networks (CNNs) [cite: 114]
-    * [cite_start]RNN / LSTM (Time-Series Forecasting) [cite: 117]
-    * [cite_start]Random Forest / Decision Trees [cite: 116]
+    * Convolutional Neural Networks (CNNs)
+    * RNN / LSTM (Time-Series Forecasting)
+    * Random Forest / Decision Trees
 
 ### Backend & Database
-* [cite_start]**Database:** MongoDB [cite: 111]
-* [cite_start]**Cloud Services:** Google Cloud / AWS [cite: 113]
-* [cite_start]**Version Control:** GitHub [cite: 112]
-
-
-![alt text](image-1.png)
+* **Database:** MongoDB
+* **Cloud Services:** Google Cloud / AWS
+* **Version Control:** GitHub
 
 ---
 
 ## 🚀 Getting Started
-
-*(Note: Instructions below are placeholders. Update with specific repo commands)*
 
 1.  **Clone the repository**
     ```bash
@@ -95,8 +94,10 @@ Proactive insights to manage long-term health and performance.
 4.  **Run on Device**
     * Connect an Android device with Camera permissions enabled.
 
+---
+
 ## 📄 License
-[Insert License Here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-[cite_start]*Developed by the FitForge AI Research Team - SLIIT Faculty of Computing [cite: 2]*
+*Developed by the FitForge AI Research Team - SLIIT Faculty of Computing*
