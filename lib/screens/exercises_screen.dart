@@ -73,6 +73,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       ),
       ExerciseDataModel(
         "High Knees",
+
         "jumping.gif",
         const Color(0xFF8B5CF6),
         ExcerciseType.HighKnees,
