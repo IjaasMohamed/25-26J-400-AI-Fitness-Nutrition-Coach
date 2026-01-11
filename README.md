@@ -1,6 +1,6 @@
 # FitForge AI: AI-Powered Personalized Gym Assistant
 
-## 📖 Project Overview
+## Project Overview
 
 **FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer. It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience.
 
@@ -8,7 +8,7 @@ Unlike standard apps that rely on manual input and generic templates, FitForge A
 
 ---
 
-## 🚩 Problem Statement
+## Problem Statement
 
 Current fitness solutions often fail because they rely on manual input (which is impractical during exercise), provide "one-size-fits-all" schedules that don't adapt to the user, and lack real-time feedback on exercise technique. This leads to ineffective workouts and increased injury risk.
 
@@ -19,7 +19,7 @@ Current fitness solutions often fail because they rely on manual input (which is
 
 ---
 
-## 💡 Key Features
+## Key Features
 
 ### 1. Zero-Interaction Fitness Tracking
 A truly hands-free experience that allows users to focus solely on their workout.
@@ -47,7 +47,7 @@ Proactive insights to manage long-term health and performance.
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 The system operates using a hybrid architecture balancing on-device processing for low latency with cloud computing for heavy data analysis.
 
@@ -81,7 +81,7 @@ The system operates using a hybrid architecture balancing on-device processing f
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 1.  **Clone the repository**
     ```bash
