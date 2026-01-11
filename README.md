@@ -5,7 +5,6 @@
 ![Tech](https://img.shields.io/badge/AI-TensorFlow%20%7C%20YOLOv11-orange)
 
 ## 📖 Project Overview
-![alt text](image-1.png)
 
 **FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer[cite: 12].It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience[cite: 13].
 
@@ -75,6 +74,9 @@ Proactive insights to manage long-term health and performance.
 * [cite_start]**Database:** MongoDB [cite: 111]
 * [cite_start]**Cloud Services:** Google Cloud / AWS [cite: 113]
 * [cite_start]**Version Control:** GitHub [cite: 112]
+
+
+![alt text](image-1.png)
 
 ---
 
