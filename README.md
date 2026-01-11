@@ -6,8 +6,6 @@
 
 Unlike standard apps that rely on manual input and generic templates, FitForge AI uses computer vision and predictive analytics to autonomously track exercises, analyze form in real-time, and generate dynamic workout schedules based on user performance and recovery needs.
 
-![alt text](image-2.png)
-
 ---
 
 ## 🚩 Problem Statement
@@ -52,6 +50,8 @@ Proactive insights to manage long-term health and performance.
 ## 🏗 System Architecture
 
 The system operates using a hybrid architecture balancing on-device processing for low latency with cloud computing for heavy data analysis.
+
+![alt text](image-3.png)
 
 * **Client Layer:** Native Android App handling User Interface, Sensor Data, and Camera Input.
 * **AI Engine Layer:** Contains modules for Form Analysis, Zero-Interaction Tracking, and Predictive Analytics.
