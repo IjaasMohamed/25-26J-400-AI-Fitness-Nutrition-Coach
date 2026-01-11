@@ -7,9 +7,9 @@
 ## 📖 Project Overview
 ![alt text](image-1.png)
 
-[cite_start]**FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer[cite: 12]. [cite_start]It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience[cite: 13].
+**FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer[cite: 12].It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience[cite: 13].
 
-[cite_start]Unlike standard apps that rely on manual input and generic templates, FitForge AI uses computer vision and predictive analytics to autonomously track exercises, analyze form in real-time, and generate dynamic workout schedules based on user performance and recovery needs[cite: 30, 168, 351].
+Unlike standard apps that rely on manual input and generic templates, FitForge AI uses computer vision and predictive analytics to autonomously track exercises, analyze form in real-time, and generate dynamic workout schedules based on user performance and recovery needs[cite: 30, 168, 351].
 
 ---
 
