@@ -6,6 +6,7 @@ import 'package:pose_detection_realtime/screens/auto_detect_screen.dart';
 import 'package:pose_detection_realtime/utils/performance_predictor.dart';
 import 'package:pose_detection_realtime/screens/ai_performance_screen.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
+import 'package:pose_detection_realtime/screens/biomechanics_demo_screen.dart';
 
 class ExercisesScreen extends StatefulWidget {
   const ExercisesScreen({super.key});
@@ -300,6 +301,85 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                   ),
                   const SizedBox(height: 24),
                   
+                  // --- Realtime pose Ijaz Fouzer ---
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BiomechanicsDemoScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.blueAccent.withAlpha(200),
+                            Colors.blueAccent.withAlpha(100),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blueAccent.withAlpha(80),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(51),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.science, // A cool science icon for your math engine!
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Automatic Form Detection',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Isolated Biomechanics Engine (Mohamed)',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // --- Real Time Pose - Ijaz Fouzer ---
+
                   // New AI Insight Card
                   if (!_isSuggestionLoading && _topSuggestion != null) ...[
                     GestureDetector(
