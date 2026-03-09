@@ -1,0 +1,101 @@
+Date,Name,Exercise,Sets,Reps_Per_Set,Total_Reps,Time_Mins,Rest_Between_Sets_Secs,Avg_Rest_Per_Rep_Secs,Performance
+2025-01-01,Deshan,Push Ups,2,"23, 24",47,5.6,113,4.81,Average
+2025-01-02,Deshan,Squat,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-03,Deshan,Push Ups,2,"21, 22",43,4.5,62,2.88,Average
+2025-01-05,Deshan,Squat,2,"20, 21",41,4.6,82,4.0,Average
+2025-01-06,Deshan,Push Ups,2,"25, 26",51,5.3,73,2.86,Good
+2025-01-09,Deshan,Squat,4,"13, 13, 13, 15",54,7.6,66,4.89,Good
+2025-01-11,Deshan,Jumping Jack,4,"22, 22, 22, 23",89,10.6,69,3.1,Good
+2025-01-13,Deshan,Push Ups,2,"28, 29",57,5.9,82,2.88,Good
+2025-01-14,Deshan,Jumping Jack,2,"25, 26",51,5.8,102,4.0,Average
+2025-01-15,Deshan,Jumping Jack,4,"23, 23, 23, 23",92,12.9,111,4.83,Good
+2025-01-19,Deshan,Push Ups,2,"19, 19",38,4.1,66,3.47,Average
+2025-01-21,Deshan,Jumping Jack,3,"17, 17, 18",52,6.4,67,3.87,Average
+2025-01-22,Deshan,Push Ups,3,"18, 18, 20",56,7.2,82,4.39,Good
+2025-01-23,Deshan,Squat,2,"28, 28",56,5.9,88,3.14,Good
+2025-01-24,Deshan,High Knee,2,"46, 46",92,10.1,162,3.52,Good
+2025-01-25,Deshan,Squat,2,"19, 19",38,4.3,77,4.05,Average
+2025-01-28,Deshan,Squat,4,"12, 12, 12, 14",50,7.0,61,4.88,Good
+2025-01-29,Deshan,Squat,2,"30, 30",60,6.0,74,2.47,Good
+2025-01-30,Deshan,Squat,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-31,Deshan,Squat,2,"15, 16",31,3.7,73,4.71,Average
+2025-01-02,Lakith,Squat,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-04,Lakith,Push Ups,2,"24, 24",48,4.8,60,2.5,Average
+2025-01-06,Lakith,High Knee,4,"23, 23, 23, 26",95,10.8,63,2.65,Good
+2025-01-07,Lakith,Push Ups,2,"16, 16",32,3.7,70,4.38,Average
+2025-01-09,Lakith,High Knee,2,"41, 41",82,8.7,131,3.2,Average
+2025-01-10,Lakith,Jumping Jack,4,"15, 15, 15, 18",63,8.2,64,4.06,Average
+2025-01-12,Lakith,Jumping Jack,3,"21, 21, 23",65,8.1,86,3.97,Average
+2025-01-13,Lakith,Push Ups,2,"16, 17",33,3.9,73,4.42,Average
+2025-01-14,Lakith,Squat,3,"14, 14, 15",43,5.7,67,4.67,Average
+2025-01-15,Lakith,High Knee,4,"23, 23, 23, 24",93,12.5,101,4.34,Good
+2025-01-16,Lakith,High Knee,3,"17, 17, 19",53,7.0,83,4.7,Average
+2025-01-17,Lakith,Squat,2,"27, 28",55,5.9,91,3.31,Good
+2025-01-18,Lakith,Push Ups,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-20,Lakith,Jumping Jack,3,"19, 19, 20",58,7.0,71,3.67,Average
+2025-01-23,Lakith,Squat,2,"22, 22",44,4.6,64,2.91,Average
+2025-01-24,Lakith,Jumping Jack,2,"42, 43",85,8.0,72,1.69,Good
+2025-01-25,Lakith,High Knee,2,"27, 28",55,5.8,81,2.95,Average
+2025-01-27,Lakith,Jumping Jack,3,"27, 27, 27",81,9.4,87,3.22,Good
+2025-01-30,Lakith,Jumping Jack,2,"26, 27",53,6.0,108,4.08,Average
+2025-01-31,Lakith,High Knee,3,"24, 24, 26",74,9.9,119,4.82,Average
+2025-01-01,Manusha,Jumping Jack,4,"20, 20, 20, 22",82,10.1,70,3.41,Good
+2025-01-02,Manusha,High Knee,2,"41, 41",82,8.3,107,2.61,Average
+2025-01-05,Manusha,High Knee,2,"44, 44",88,9.0,120,2.73,Good
+2025-01-06,Manusha,Jumping Jack,4,"14, 14, 14, 15",57,7.7,63,4.42,Average
+2025-01-07,Manusha,High Knee,2,"44, 45",89,9.9,167,3.75,Good
+2025-01-10,Manusha,Squat,3,"19, 19, 21",59,7.2,73,3.71,Good
+2025-01-12,Manusha,Squat,3,"12, 12, 13",37,5.0,60,4.86,Average
+2025-01-13,Manusha,Push Ups,4,"12, 12, 12, 15",51,7.1,61,4.78,Good
+2025-01-14,Manusha,Jumping Jack,2,"35, 35",70,6.6,61,1.74,Good
+2025-01-15,Manusha,Jumping Jack,4,"22, 22, 22, 23",89,10.4,66,2.97,Good
+2025-01-16,Manusha,High Knee,2,"42, 42",84,9.9,189,4.5,Good
+2025-01-17,Manusha,Squat,3,"12, 12, 13",37,5.0,60,4.86,Average
+2025-01-18,Manusha,High Knee,3,"21, 21, 23",65,7.8,78,3.6,Average
+2025-01-20,Manusha,Push Ups,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-22,Manusha,Squat,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-23,Manusha,Squat,4,"14, 14, 14, 17",59,7.8,61,4.14,Good
+2025-01-24,Manusha,Push Ups,2,"19, 19",38,4.1,66,3.47,Average
+2025-01-26,Manusha,Push Ups,3,"12, 12, 14",38,5.1,62,4.89,Average
+2025-01-28,Manusha,Push Ups,3,"17, 17, 18",52,6.4,66,3.81,Good
+2025-01-31,Manusha,Squat,3,"15, 15, 16",46,5.9,68,4.43,Average
+2025-01-02,Pasidu,Squat,4,"13, 13, 13, 14",53,7.4,63,4.75,Good
+2025-01-03,Pasidu,Jumping Jack,2,"36, 37",73,7.1,77,2.11,Good
+2025-01-04,Pasidu,Jumping Jack,2,"27, 28",55,5.6,74,2.69,Average
+2025-01-05,Pasidu,Push Ups,2,"25, 25",50,5.8,110,4.4,Good
+2025-01-07,Pasidu,Jumping Jack,2,"44, 44",88,9.7,158,3.59,Good
+2025-01-08,Pasidu,Jumping Jack,3,"29, 29, 30",88,11.3,127,4.33,Good
+2025-01-09,Pasidu,Squat,2,"23, 24",47,5.5,103,4.38,Average
+2025-01-11,Pasidu,High Knee,4,"23, 23, 23, 24",93,12.8,108,4.65,Good
+2025-01-12,Pasidu,Squat,4,"13, 13, 13, 15",54,7.4,62,4.59,Good
+2025-01-13,Pasidu,High Knee,3,"22, 22, 24",68,7.8,70,3.09,Average
+2025-01-15,Pasidu,Jumping Jack,4,"12, 12, 12, 14",50,7.0,61,4.88,Average
+2025-01-16,Pasidu,Push Ups,2,"23, 23",46,5.3,100,4.35,Average
+2025-01-19,Pasidu,Squat,4,"14, 14, 14, 14",56,7.9,68,4.86,Good
+2025-01-22,Pasidu,Push Ups,3,"12, 12, 13",37,5.0,60,4.86,Average
+2025-01-23,Pasidu,Push Ups,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-24,Pasidu,High Knee,3,"29, 29, 30",88,11.1,122,4.16,Good
+2025-01-26,Pasidu,High Knee,3,"19, 19, 19",57,7.2,79,4.16,Average
+2025-01-27,Pasidu,Push Ups,2,"15, 16",31,3.5,62,4.0,Average
+2025-01-28,Pasidu,High Knee,2,"40, 41",81,9.7,196,4.84,Average
+2025-01-30,Pasidu,Push Ups,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-01,Thanuja,High Knee,2,"42, 43",85,10.1,199,4.68,Good
+2025-01-02,Thanuja,Jumping Jack,3,"21, 21, 22",64,8.4,97,4.55,Average
+2025-01-03,Thanuja,Squat,2,"27, 28",55,5.7,80,2.91,Good
+2025-01-04,Thanuja,Jumping Jack,3,"23, 23, 25",71,8.0,69,2.92,Good
+2025-01-05,Thanuja,Push Ups,3,"20, 20, 20",60,7.0,66,3.3,Good
+2025-01-08,Thanuja,High Knee,2,"37, 37",74,7.7,105,2.84,Average
+2025-01-09,Thanuja,Squat,3,"16, 16, 17",49,6.0,61,3.73,Good
+2025-01-14,Thanuja,Jumping Jack,2,"42, 42",84,9.3,156,3.71,Good
+2025-01-17,Thanuja,High Knee,3,"28, 28, 29",85,10.3,106,3.74,Good
+2025-01-18,Thanuja,Push Ups,2,"26, 26",52,5.2,65,2.5,Good
+2025-01-19,Thanuja,Push Ups,3,"18, 18, 18",54,6.4,62,3.44,Good
+2025-01-21,Thanuja,Push Ups,2,"28, 29",57,6.4,108,3.79,Good
+2025-01-22,Thanuja,Squat,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-23,Thanuja,Squat,3,"12, 12, 13",37,5.0,60,4.86,Average
+2025-01-24,Thanuja,Squat,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-26,Thanuja,Squat,4,"13, 13, 13, 13",52,7.2,60,4.62,Good
+2025-01-27,Thanuja,Push Ups,4,"12, 12, 12, 13",49,6.9,60,4.9,Good
+2025-01-29,Thanuja,Push Ups,3,"12, 12, 13",37,5.0,60,4.86,Average
+2025-01-30,Thanuja,Jumping Jack,4,"16, 16, 16, 19",67,9.5,82,4.9,Average
+2025-01-31,Thanuja,Push Ups,3,"17, 17, 17",51,6.1,61,3.59,Good
