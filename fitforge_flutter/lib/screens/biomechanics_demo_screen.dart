@@ -3,8 +3,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+
+// Import all three of your biomechanical analyzers
 import 'package:pose_detection_realtime/form_analysis/squat_analyzer.dart';
-import 'package:pose_detection_realtime/main.dart'; // To access the cameras list
+import 'package:pose_detection_realtime/form_analysis/pushup_analyzer.dart';
+import 'package:pose_detection_realtime/form_analysis/situp_analyzer.dart';
+import 'package:pose_detection_realtime/main.dart'; 
 
 class BiomechanicsDemoScreen extends StatefulWidget {
   const BiomechanicsDemoScreen({super.key});
@@ -18,14 +22,18 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
   late PoseDetector _poseDetector;
   bool _isBusy = false;
   
-  // Your Biomechanical Brain!
+  // Initialize all three engines
   final SquatAnalyzer _squatAnalyzer = SquatAnalyzer();
+  final PushupAnalyzer _pushupAnalyzer = PushupAnalyzer();
+  final SitupAnalyzer _situpAnalyzer = SitupAnalyzer();
   
-  // UI State Variables to show the panel
+  // State variables for the UI
+  String _selectedExercise = 'Squats'; // Default exercise
   int _repCount = 0;
   String _currentState = 'standing';
   List<String> _currentErrors = [];
-  double _currentKneeAngle = 180.0;
+  double _primaryAngle = 180.0;
+  String _primaryAngleName = 'Knee Angle';
 
   @override
   void initState() {
@@ -38,7 +46,7 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
     _poseDetector = PoseDetector(options: options);
 
     _cameraController = CameraController(
-      cameras[0], // Uses the first camera
+      cameras[0], 
       ResolutionPreset.medium,
       imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
@@ -63,7 +71,7 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
       if (poses.isNotEmpty) {
         final landmarks = poses.first.landmarks;
         
-        // 1. Map Google ML Kit landmarks to your SquatAnalyzer format
+        // 1. Map Google ML Kit landmarks to your engine's format
         Map<String, List<double>> formattedLandmarks = {};
         void addLandmark(String name, PoseLandmarkType type) {
           if (landmarks[type] != null) {
@@ -73,6 +81,10 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
 
         addLandmark('left_shoulder', PoseLandmarkType.leftShoulder);
         addLandmark('right_shoulder', PoseLandmarkType.rightShoulder);
+        addLandmark('left_elbow', PoseLandmarkType.leftElbow);
+        addLandmark('right_elbow', PoseLandmarkType.rightElbow);
+        addLandmark('left_wrist', PoseLandmarkType.leftWrist);
+        addLandmark('right_wrist', PoseLandmarkType.rightWrist);
         addLandmark('left_hip', PoseLandmarkType.leftHip);
         addLandmark('right_hip', PoseLandmarkType.rightHip);
         addLandmark('left_knee', PoseLandmarkType.leftKnee);
@@ -80,19 +92,31 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
         addLandmark('left_ankle', PoseLandmarkType.leftAnkle);
         addLandmark('right_ankle', PoseLandmarkType.rightAnkle);
 
-        // 2. Feed the data to YOUR engine
-        final analysis = _squatAnalyzer.analyzeFrame(formattedLandmarks);
+        // 2. Route the data to the correct analyzer based on the dropdown menu
+        Map<String, dynamic> analysis = {};
 
+        if (_selectedExercise == 'Squats') {
+          analysis = _squatAnalyzer.analyzeFrame(formattedLandmarks);
+          _primaryAngleName = 'Knee Angle';
+          if (analysis['angles'] != null) _primaryAngle = analysis['angles']['knee_avg'] ?? 180.0;
+        } 
+        else if (_selectedExercise == 'Pushups') {
+          analysis = _pushupAnalyzer.analyzeFrame(formattedLandmarks);
+          _primaryAngleName = 'Elbow Angle';
+          if (analysis['angles'] != null) _primaryAngle = analysis['angles']['elbow_avg'] ?? 180.0;
+        } 
+        else if (_selectedExercise == 'Situps') {
+          analysis = _situpAnalyzer.analyzeFrame(formattedLandmarks);
+          _primaryAngleName = 'Hip Flexion';
+          if (analysis['angles'] != null) _primaryAngle = analysis['angles']['hip_flexion'] ?? 180.0;
+        }
+
+        // 3. Update the UI Overlay
         if (analysis['status'] == 'analyzed') {
           setState(() {
             _repCount = analysis['rep_count'];
             _currentState = analysis['current_state'];
             _currentErrors = List<String>.from(analysis['form_errors'] ?? []);
-            
-            // Extract the angle to show on screen
-            if (analysis['angles'] != null && analysis['angles']['knee_avg'] != null) {
-              _currentKneeAngle = analysis['angles']['knee_avg'];
-            }
           });
         }
       }
@@ -100,7 +124,6 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
     _isBusy = false;
   }
 
-  // Camera orientation helper (same as main app)
   final _orientations = {
     DeviceOrientation.portraitUp: 0,
     DeviceOrientation.landscapeLeft: 90,
@@ -168,7 +191,7 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
               ),
             ),
 
-          // 2. Data Overlay Panel (Perfect for the Viva Panel!)
+          // 2. Data Overlay Panel 
           Positioned(
             bottom: 30,
             left: 20,
@@ -176,7 +199,7 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withOpacity(0.85),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.blueAccent, width: 2),
               ),
@@ -184,10 +207,45 @@ class _BiomechanicsDemoScreenState extends State<BiomechanicsDemoScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Squat Reps: $_repCount", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  // Dropdown to switch exercises dynamically
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedExercise,
+                      dropdownColor: Colors.grey[900],
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      icon: const Icon(Icons.arrow_drop_down, color: Colors.blueAccent),
+                      items: <String>['Squats', 'Pushups', 'Situps'].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedExercise = newValue;
+                            // Reset the UI when switching exercises
+                            _repCount = 0;
+                            _currentState = _selectedExercise == 'Pushups' ? 'up' : (_selectedExercise == 'Situps' ? 'down' : 'standing');
+                            _currentErrors = [];
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  Text("Reps: $_repCount", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Text("Phase: ${_currentState.toUpperCase()}", style: const TextStyle(color: Colors.orangeAccent, fontSize: 18)),
-                  Text("Knee Angle: ${_currentKneeAngle.toStringAsFixed(1)}°", style: const TextStyle(color: Colors.greenAccent, fontSize: 18)),
+                  Text("$_primaryAngleName: ${_primaryAngle.toStringAsFixed(1)}°", style: const TextStyle(color: Colors.greenAccent, fontSize: 18)),
                   
                   if (_currentErrors.isNotEmpty) ...[
                     const SizedBox(height: 15),
