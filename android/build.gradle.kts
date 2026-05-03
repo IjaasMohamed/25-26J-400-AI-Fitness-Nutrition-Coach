@@ -1,7 +1,19 @@
 allprojects {
+    buildscript {
+        repositories.withType(MavenArtifactRepository::class.java).configureEach {
+            if (url.toString().contains("repo.maven.apache.org")) {
+                url = uri("https://repo1.maven.org/maven2/")
+            }
+        }
+    }
     repositories {
         google()
         mavenCentral()
+    }
+    repositories.withType(MavenArtifactRepository::class.java).configureEach {
+        if (url.toString().contains("repo.maven.apache.org")) {
+            url = uri("https://repo1.maven.org/maven2/")
+        }
     }
 }
 

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:pose_detection_realtime/screens/exercises_screen.dart';
 import 'package:pose_detection_realtime/screens/history_screen.dart';
 import 'package:pose_detection_realtime/screens/profile_screen.dart';
+import 'package:pose_detection_realtime/screens/generate_workout_screen.dart';
+import 'package:pose_detection_realtime/screens/risk_dashboard_screen.dart';
+import 'package:pose_detection_realtime/screens/lstm_performance_insights_screen.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,6 +21,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = const [
     ExercisesScreen(),
     HistoryScreen(),
+    RiskDashboardScreen(),
+    LSTMAdvancedInsightsScreen(), // Replaced basic screen
+    GenerateWorkoutScreen(),
     ProfileScreen(),
   ];
 
@@ -72,9 +78,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         index: 1,
                       ),
                       _buildNavItem(
+                        icon: Icons.assessment,
+                        label: 'Risk',
+                        index: 2,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.insights,
+                        label: 'Insights',
+                        index: 3,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.auto_awesome,
+                        label: 'AI Gen',
+                        index: 4,
+                      ),
+                      _buildNavItem(
                         icon: Icons.person,
                         label: 'Profile',
-                        index: 2,
+                        index: 5,
                       ),
                     ],
                   ),

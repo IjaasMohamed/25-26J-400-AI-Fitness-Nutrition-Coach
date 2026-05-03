@@ -1,105 +1,119 @@
-# FitForge AI: AI-Powered Personalized Gym Assistant
-
-Repository Link : https://github.com/IjaasMohamed/25-26J-400-AI-Fitness-Nutrition-Coach/tree/main
+# FitForge AI: Air-Powered Personalized Gym Assistant
 
 ## Project Overview
 
-**FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer. It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience.
+**FitForge AI** is a smart fitness coaching system designed to turn any smartphone into a personal trainer. It addresses the limitations of traditional fitness apps by providing a fully automated, hands-free, and adaptive workout experience. 
 
-Unlike standard apps that rely on manual input and generic templates, FitForge AI uses computer vision and predictive analytics to autonomously track exercises, analyze form in real-time, and generate dynamic workout schedules based on user performance and recovery needs.
-
----
-
-## Problem Statement
-
-Current fitness solutions often fail because they rely on manual input (which is impractical during exercise), provide "one-size-fits-all" schedules that don't adapt to the user, and lack real-time feedback on exercise technique. This leads to ineffective workouts and increased injury risk.
-
-* **Manual Distractions:** Traditional apps require users to manually input data (reps/sets) or use touch controls, which breaks focus and is impractical during intense exercise.
-* **Lack of Guidance:** Novice users often suffer from injuries due to incorrect form, with no real-time feedback available outside of expensive personal trainers.
-* **Generic Planning:** Most apps provide static schedules that fail to adapt to individual recovery rates and performance fluctuations.
-* **Device Dependency:** Advanced tracking often requires expensive specialized hardware or wearables.
+Originally conceived as a native Android app with YOLOv11, the project has evolved into a cross-platform **Flutter** application utilizing **Google ML Kit** for high-performance, on-device pose detection and **Supabase** for real-time data sync and backend services. The application autonomously tracks exercises, analyzes form in real-time, and generates dynamic workout schedules utilizing machine learning.
 
 ---
 
 ## Key Features
 
-### 1. Zero-Interaction Fitness Tracking
-A truly hands-free experience that allows users to focus solely on their workout.
-* **Automated Recognition:** Uses computer vision (YOLOv11) to autonomously detect exercise start and end times.
-* **Smart Counting:** Automatically tracks sets and repetitions without manual input.
-* **Flow Management:** Automatically calculates and manages rest periods between sets.
-
-### 2. Real-Time Biomechanical Form Analysis
-Functions as a vigilant spotter to ensure safety and effectiveness.
-* **Skeletal Tracking:** Tracks 33 body keypoints at over 30 FPS using on-device processing.
-* **Angle Calculation:** Measures critical joint angles (knees, elbows, spine) with high accuracy (±5 degrees) to detect deviations.
-* **Instant Feedback:** Provides visual and audio corrective cues within 100ms of detecting an error to prevent injury.
-
-### 3. Intelligent Workout Forecasting
-Replaces static templates with dynamic, AI-driven planning.
-* **Adaptive Scheduling:** Generates personalized workout plans that evolve based on historical performance and body data.
-* **Image-Based Analysis:** Analyzes body composition via smartphone images to tailor fitness plans.
-* **Progressive Overload:** Forecasts future workout needs to ensure consistent progress.
-
-### 4. Predictive Health Analytics
-Proactive insights to manage long-term health and performance.
-* **Recovery Estimation:** Predicts recovery duration based on heart rate, calorie expenditure, and workload.
-* **Risk Detection:** Identifies patterns indicating overtraining or potential injury risks before they occur.
-* **Performance Forecasting:** Models future strength and endurance trends to set realistic goals.
+1. **Zero-Interaction Fitness Tracking**
+   - Automatically tracks sets and repetitions without manual input using on-device computer vision.
+   - Manages workout flow and calculates necessary rest periods automatically based on real-time performance.
+2. **Real-Time Biomechanical Form Analysis**
+   - Uses **Google ML Kit Pose Detection** to track 33 body keypoints continuously.
+   - Calculates critical joint angles (knees, elbows, shoulders) mathematically to detect deviations and assess form.
+   - Provides live visual and audio feedback (via TTS) to ensure safety and effectiveness.
+3. **Intelligent Workout Forecasting & Risk Assessment**
+   - Analyzes real-time angles and depth to maintain a continuous risk assessment.
+   - Predicts performance and fatigue using robust Python-trained Random Forest models embedded into the system logic.
+   - Adapts future schedules based on historical performance, actual rest times, and rep variance.
 
 ---
 
-## System Architecture
+## 💾 Database Architecture (Supabase)
 
-The system operates using a hybrid architecture balancing on-device processing for low latency with cloud computing for heavy data analysis.
+FitForge AI utilizes **Supabase** to meticulously persist user workout data, enabling advanced historical tracking and machine learning applications.
 
-![alt text](image-3.png)
+### 1. `workout_schedules`
+Stores the personalized, AI-generated or user-managed workout schedules.
+- **Data Saved:** User ID, Date scheduled, Exercise Name, Target Sets, Target Reps, Target Rest Time (seconds).
 
-* **Client Layer:** Native Android App handling User Interface, Sensor Data, and Camera Input.
-* **AI Engine Layer:** Contains modules for Form Analysis, Zero-Interaction Tracking, and Predictive Analytics.
-* **Cloud Data Layer:** Manages User Profiles, Exercise Databases, and Historical Logs.
+### 2. `exercise_sets`
+Acts as the parent record for each completed set of an exercise.
+- **Data Saved:** 
+  - `id` (Unique Set Identifier)
+  - `user_id` (Authenticated User ID)
+  - `exercise_name` (e.g., PushUps, Squats)
+  - `set_number` (The chronological sequence of the set)
+  - `total_reps` (Count of valid repetitions completed)
+  - `exercise_date` / `exercise_time` 
+  - `heart_rate` (Collected manually post-workout)
+  - `actual_rest_time_seconds` (How long the user actually rested after this set)
+
+### 3. `exercise_reps`
+High-granularity table storing biomechanical data for **each individual repetition**. 
+- **Data Saved:**
+  - `id` (Unique Rep Identifier)
+  - `set_id` (Foreign key to `exercise_sets`)
+  - `rep_number`
+  - `time_since_last_rep` (Duration of the consecutive rep to measure pacing/fatigue)
+  - `max_depth_angle` (The maximum extension/flexion angle achieved during the rep)
+  - `left_right_imbalance_degrees` (Asymmetry between left and right limb angles to assess injury risk)
+
+---
+
+## 🎥 How We Collect Data
+
+The system relies on a seamless pipeline from the camera sensor to the database:
+
+1. **Video Stream Input:** The Flutter `camera` plugin captures a live video feed from the device's front or rear camera.
+2. **On-Device Post Estimation:** Frames are continuously piped into **Google ML Kit Pose Detection**, which extracts 33 2D skeletal keypoints (e.g., wrists, elbows, shoulders, hips, knees).
+3. **Biomechanical Calculation:** Mathematical functions calculate the angles between keypoints (e.g., the angle formed by the shoulder, elbow, and wrist).
+4. **State Machine & Rep Counting:** 
+   - A repetition is validated mathematically when specific angle thresholds are crossed (e.g., elbow angle drops below 90 degrees and extends back past 160 degrees for a push-up).
+   - During the repetition, maximum depth and left/right asymmetries are tracked by the `RiskAssessmentEngine`.
+5. **Data Aggregation & Syncing:**
+   - On completing a rep, the specific biomechanical stats and timestamps are cached locally.
+   - Upon completing the *Set*, all granular reps and the overarching set summary are bundled and synced to **Supabase** via secure, authenticated REST API queries.
 
 ---
 
 ## 🛠 Technology Stack
 
-### Mobile & Frontend
-* **Platform:** Android (Native)
-* **IDE:** Android Studio
-
-### AI & Machine Learning
-* **Languages:** Python
-* **Frameworks:** TensorFlow, PyTorch
-* **Vision Engine:** YOLOv11 (Pose Estimation)
-* **Algorithms:**
-    * Convolutional Neural Networks (CNNs)
-    * RNN / LSTM (Time-Series Forecasting)
-    * Random Forest / Decision Trees
+### Mobile Frontend
+- **Framework:** Flutter (Dart)
+- **State Management / UI:** Flutter SDK, Custom Theme engine
+- **Camera & Vision:** `camera`, `google_mlkit_pose_detection`
+- **Audio:** `flutter_tts`
 
 ### Backend & Database
-* **Database:** MongoDB
-* **Cloud Services:** Google Cloud / AWS
-* **Version Control:** GitHub
+- **BaaS (Backend as a Service):** Supabase (PostgreSQL, Authentication)
+
+### Machine Learning (Training)
+- **Languages/Libraries:** Python, Pandas, Scikit-learn
+- **Algorithms:** Random Forest Classifiers/Regressors 
+- **Purpose:** Analyzing exported CSV arrays to construct `.pkl` models to recommend exercises and predict performance. Data generated by the Python modules (like `workout_data.json`) is embedded into the Flutter app assets.
 
 ---
 
-##  Getting Started
+## 🚀 Getting Started
 
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/your-username/fitforge-ai.git](https://github.com/your-username/fitforge-ai.git)
-    ```
-2.  **Open in Android Studio**
-    * File -> Open -> Select project folder.
-3.  **Sync Gradle**
-    * Ensure all dependencies are installed.
-4.  **Run on Device**
-    * Connect an Android device with Camera permissions enabled.
+### Prerequisites
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (^3.7.0 configuration)
+- Android Studio or Xcode
+- A Supabase Project with the aforementioned schema defined.
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   ```
+2. **Install Dependencies:**
+   ```bash
+   flutter pub get
+   ```
+3. **Configure Environment:**
+   Update the `Supabase.initialize()` keys in `lib/main.dart` with your Supabase URL and Anon Key.
+4. **Run the Application:**
+   ```bash
+   flutter run
+   ```
+   *Note: Ensure you are running on a physical device to properly utilize the camera and ML Kit pose detection.*
 
 ---
-
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-*Developed by the FitForge AI Research Team - SLIIT Faculty of Computing*
+*Developed by the FitForge AI Research Team*

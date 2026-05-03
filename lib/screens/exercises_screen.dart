@@ -1,8 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:pose_detection_realtime/Model/ExerciseDataModel.dart';
-import 'package:pose_detection_realtime/DetectionScreen.dart';
+import 'package:pose_detection_realtime/screens/components/workout_config_sheet.dart';
 import 'package:pose_detection_realtime/screens/auto_detect_screen.dart';
+import 'package:pose_detection_realtime/services/workout_service.dart';
+import 'package:pose_detection_realtime/models/performance_suggestion.dart';
+import 'package:pose_detection_realtime/services/prediction_service.dart';
+import 'package:pose_detection_realtime/screens/lstm_performance_insights_screen.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
 
 class ExercisesScreen extends StatefulWidget {
@@ -14,23 +18,56 @@ class ExercisesScreen extends StatefulWidget {
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
   List<ExerciseDataModel> exerciseList = [];
+  PerformanceSuggestion? _topSuggestion;
+  bool _isSuggestionLoading = true;
+
+  bool _isLstmLoading = false;
 
   @override
   void initState() {
     super.initState();
     loadData();
+    _fetchTopSuggestion();
   }
 
-  void _startRandomWorkout() {
-    if (exerciseList.isEmpty) return;
-    final random = Random();
-    final randomExercise = exerciseList[random.nextInt(exerciseList.length)];
+  Future<void> _fetchTopSuggestion() async {
+    try {
+      final predictor = PredictionService();
+      final results = await predictor.getSuggestions();
+      debugPrint("ExercisesScreen: Fetched ${results.length} suggestions.");
+      
+      if (mounted) {
+        setState(() {
+          if (results.isNotEmpty) {
+            _topSuggestion = results.firstWhere(
+              (s) => s.trend == 'up',
+              orElse: () => results.first,
+            );
+          }
+          _isSuggestionLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("ExercisesScreen: Fatal error fetching suggestions: $e");
+      if (mounted) setState(() => _isSuggestionLoading = false);
+    }
+  }
+
+  Future<void> _handleLSTMPrediction() async {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Detectionscreen(exerciseDataModel: randomExercise),
+        builder: (context) => const LSTMAdvancedInsightsScreen(),
       ),
     );
+  }
+
+
+  Future<void> _startRandomWorkout() async {
+    if (exerciseList.isEmpty) return;
+    final random = Random();
+    final randomExercise = exerciseList[random.nextInt(exerciseList.length)];
+    WorkoutConfigSheet.show(context, exercise: randomExercise);
   }
 
   void loadData() {
@@ -97,6 +134,25 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     }
   }
 
+  void _handleWorkoutResult(dynamic result) async {
+    if (result is Map && result['action'] == 'save_workout') {
+      final String? setId = result['setId'];
+      debugPrint('[ExercisesScreen] Handling workout result. setId: $setId');
+      
+      final int? heartRate = await WorkoutService.showHeartRateDialog(context);
+      
+      if (setId != null && heartRate != null) {
+        await WorkoutService.updateHeartRate(setId, heartRate);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Workout data updated!'), backgroundColor: AppTheme.success),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -138,7 +194,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'AI Exercise',
+                                'Exercise',
                                 style: Theme.of(context).textTheme.headlineMedium,
                               ),
                               Text(
@@ -194,22 +250,96 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                       const SizedBox(width: 12),
                       _buildStatCard(
                         icon: Icons.bolt,
-                        value: 'AI',
-                        label: 'Powered',
+                        value: 'Pro',
+                        label: 'Insights',
                         color: AppTheme.success,
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
+
+                  // LSTM Prediction Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardGlass,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withAlpha(26)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(51),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withAlpha(51),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.trending_up,
+                                color: AppTheme.primary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Next Workout Forecast',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _handleLSTMPrediction,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Predict Performance',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
                   // Auto-Detect Workout Button
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AutoDetectScreen(),
                         ),
                       );
+                      if (mounted) _handleWorkoutResult(result);
                     },
                     child: Container(
                       width: double.infinity,
@@ -278,6 +408,8 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  
+                  
                   Text(
                     'Available Workouts',
                     style: Theme.of(context).textTheme.titleLarge,
@@ -334,7 +466,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             ),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 12,
               ),
@@ -361,12 +493,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       },
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Detectionscreen(exerciseDataModel: exercise),
-            ),
-          );
+          WorkoutConfigSheet.show(context, exercise: exercise);
         },
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -504,6 +631,33 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                // Insights Icon
+                Positioned(
+                  right: 60,
+                  bottom: 20,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LSTMAdvancedInsightsScreen(exerciseName: exercise.title),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(51),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.insights,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
                   ),
                 ),
                 // Play Icon

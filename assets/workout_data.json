@@ -1,0 +1,332 @@
+[
+  {
+    "Name of Exercise": "Decline Push-Ups",
+    "Target Muscle Group_Cleaned": "Chest, Triceps, Shoulders",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1080.9
+  },
+  {
+    "Name of Exercise": "Bear Crawls",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1809.91
+  },
+  {
+    "Name of Exercise": "Dips",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 802.26
+  },
+  {
+    "Name of Exercise": "Mountain Climbers",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1450.79
+  },
+  {
+    "Name of Exercise": "Bicep Curls",
+    "Target Muscle Group_Cleaned": "Biceps",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1166.4
+  },
+  {
+    "Name of Exercise": "Leg Press",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 453.33
+  },
+  {
+    "Name of Exercise": "Thrusters",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 1953.9
+  },
+  {
+    "Name of Exercise": "Turkish Get-Ups",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 727.81
+  },
+  {
+    "Name of Exercise": "Glute Bridges",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 2062.37
+  },
+  {
+    "Name of Exercise": "Step-Ups",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1157.25
+  },
+  {
+    "Name of Exercise": "Plank",
+    "Target Muscle Group_Cleaned": "Core",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1974.26
+  },
+  {
+    "Name of Exercise": "Pull-Ups",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 2733.4
+  },
+  {
+    "Name of Exercise": "Lunges",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 2700.62
+  },
+  {
+    "Name of Exercise": "Plyo Squats",
+    "Target Muscle Group_Cleaned": "Legs, Glutes",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 743.85
+  },
+  {
+    "Name of Exercise": "Squats",
+    "Target Muscle Group_Cleaned": "Legs, Glutes",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1293.84
+  },
+  {
+    "Name of Exercise": "Frog Jumps",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 2189.58
+  },
+  {
+    "Name of Exercise": "Deadlifts",
+    "Target Muscle Group_Cleaned": "Back, Legs",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1544.4
+  },
+  {
+    "Name of Exercise": "Prone Cobras",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1326.0
+  },
+  {
+    "Name of Exercise": "Lat Pulldowns",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1831.81
+  },
+  {
+    "Name of Exercise": "Russian Twists",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 792.0
+  },
+  {
+    "Name of Exercise": "Shoulder Press",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1848.0
+  },
+  {
+    "Name of Exercise": "Tricep Dips",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 2226.42
+  },
+  {
+    "Name of Exercise": "Kettlebell Swings",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 827.31
+  },
+  {
+    "Name of Exercise": "Resistance Band Pull-Aparts",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 1324.8
+  },
+  {
+    "Name of Exercise": "Leg Raises",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 790.68
+  },
+  {
+    "Name of Exercise": "Tricep Extensions",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 2545.4
+  },
+  {
+    "Name of Exercise": "Dead Bugs",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1902.7
+  },
+  {
+    "Name of Exercise": "Scissors Kicks",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 895.4
+  },
+  {
+    "Name of Exercise": "Plyometric Push-Ups",
+    "Target Muscle Group_Cleaned": "Chest, Triceps, Shoulders",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1311.91
+  },
+  {
+    "Name of Exercise": "Push Ups",
+    "Target Muscle Group_Cleaned": "Chest, Triceps, Shoulders",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 566.57
+  },
+  {
+    "Name of Exercise": "Bench Press",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1818.3
+  },
+  {
+    "Name of Exercise": "Inverted Rows",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 786.11
+  },
+  {
+    "Name of Exercise": "Seated Rows",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1011.08
+  },
+  {
+    "Name of Exercise": "Calf Raises",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1209.0
+  },
+  {
+    "Name of Exercise": "Reverse Lunges",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1248.53
+  },
+  {
+    "Name of Exercise": "Deadlift",
+    "Target Muscle Group_Cleaned": "Back, Legs",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1787.42
+  },
+  {
+    "Name of Exercise": "Wall Angels",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 999.97
+  },
+  {
+    "Name of Exercise": "Lateral Raises",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 1727.73
+  },
+  {
+    "Name of Exercise": "Face Pulls",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 960.8
+  },
+  {
+    "Name of Exercise": "Burpees",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1842.22
+  },
+  {
+    "Name of Exercise": "Push-Ups",
+    "Target Muscle Group_Cleaned": "Chest, Triceps, Shoulders",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1073.69
+  },
+  {
+    "Name of Exercise": "Box Jumps",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 2807.11
+  },
+  {
+    "Name of Exercise": "Rows",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 961.17
+  },
+  {
+    "Name of Exercise": "Bird Dogs",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 481.8
+  },
+  {
+    "Name of Exercise": "Dragon Flags",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 2060.78
+  },
+  {
+    "Name of Exercise": "Bicycle Crunches",
+    "Target Muscle Group_Cleaned": "Core, Abs",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 541.2
+  },
+  {
+    "Name of Exercise": "Flutter Kicks",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 792.72
+  },
+  {
+    "Name of Exercise": "Bulgarian Split Squats",
+    "Target Muscle Group_Cleaned": "Legs, Glutes",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1806.18
+  },
+  {
+    "Name of Exercise": "Superman",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 1556.3
+  },
+  {
+    "Name of Exercise": "Incline Push-Ups",
+    "Target Muscle Group_Cleaned": "Chest, Triceps, Shoulders",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 842.4
+  },
+  {
+    "Name of Exercise": "Jumping Jacks",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 1927.2
+  },
+  {
+    "Name of Exercise": "Renegade Rows",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Beginner",
+    "Calories_Burned": 979.2
+  },
+  {
+    "Name of Exercise": "Windshield Wipers",
+    "Target Muscle Group_Cleaned": "Full Body",
+    "Difficulty Level_Cleaned": "Intermediate",
+    "Calories_Burned": 914.11
+  },
+  {
+    "Name of Exercise": "Zottman Curls",
+    "Target Muscle Group_Cleaned": "Biceps",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 1427.4
+  },
+  {
+    "Name of Exercise": "Pistol Squats",
+    "Target Muscle Group_Cleaned": "Legs, Glutes",
+    "Difficulty Level_Cleaned": "Advanced",
+    "Calories_Burned": 734.4
+  }
+]

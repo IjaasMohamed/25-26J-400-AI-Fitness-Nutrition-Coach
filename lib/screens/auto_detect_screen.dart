@@ -5,10 +5,18 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:pose_detection_realtime/Model/ExerciseDataModel.dart';
+import 'package:pose_detection_realtime/screens/rest_timer_screen.dart';
 import 'package:pose_detection_realtime/utils/exercise_classifier.dart';
+import 'package:pose_detection_realtime/utils/form_analyzer.dart';
+import 'package:pose_detection_realtime/utils/risk_assessment_engine.dart';
 import 'package:pose_detection_realtime/main.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'package:pose_detection_realtime/theme/app_theme.dart';
+import 'package:pose_detection_realtime/services/workout_service.dart';
 
 class AutoDetectScreen extends StatefulWidget {
   const AutoDetectScreen({super.key});
@@ -44,6 +52,42 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
   bool isJumpingJackOpen = false;
   bool leftKneeUp = false;
   bool rightKneeUp = false;
+
+  // Custom Tracking Variables
+  int currentSetNumber = 1;
+  String? currentSetId;
+  String? lastCompletedSetId;
+  DateTime? lastRepTime;
+  List<Map<String, dynamic>> repDataToSave = [];
+  bool isSaving = false;
+  DateTime? setStartTime;
+
+  final riskEngine = RiskAssessmentEngine();
+  final formAnalyzer = FormAnalyzer();
+
+  // TTS Feedback State
+  String? _lastSpokenIssue;
+  DateTime _lastSpokenTime = DateTime.now();
+
+  // Rest timer tracking
+  bool isRestTimerActive = false;
+  DateTime? restTimerStart;
+  double actualRestTimeSeconds = 0.0;
+  int restSecsForSet = 0;
+
+  // Save actual rest time to DB for the previous set
+  Future<void> _saveActualRestTime(double seconds) async {
+    if (_scheduleItem == null || lastCompletedSetId == null) return;
+    final supabase = Supabase.instance.client;
+    await supabase.from('exercise_sets').update({
+      'actual_rest_time_seconds': seconds,
+    }).eq('id', lastCompletedSetId!);
+  }
+
+  // 🔔 Schedule-aware fields
+  Map<String, dynamic>? _scheduleItem; // set when exercise detected & found in schedule
+  bool _scheduleTriggered = false;
+  late FlutterTts _tts;
 
   int get currentCount {
     if (detectedExercise == null) return 0;
@@ -96,6 +140,10 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
+    _tts = FlutterTts();
+    _tts.setLanguage('en-US');
+    _tts.setSpeechRate(0.5);
+    _tts.awaitSpeakCompletion(true); // <--- Add this so speak() returns a Future that waits
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -146,10 +194,19 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
             setState(() {
               detectedExercise = detected;
               isDetecting = false;
+              setStartTime = DateTime.now(); // Start workout timer
             });
+            // 🔍 Look up schedule for this exercise
+            _lookupSchedule(detected);
           }
         } else {
-          // Phase 2: Count reps for detected exercise
+          // Pass global angles to the Risk Engine constantly regardless of exercise specific triggers
+          _processGlobalRiskMetrics(poses.first);
+          
+          // Form Analysis
+          final formResult = formAnalyzer.analyzeFrame(detectedExercise!, poses.first.landmarks);
+          _speakFormFeedback(formResult);
+
           switch (detectedExercise!) {
             case ExcerciseType.PushUps:
               detectPushUp(poses.first.landmarks);
@@ -177,12 +234,332 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     }
   }
 
+  // --- ML Tracking Helper ---
+  void _processGlobalRiskMetrics(Pose pose) {
+    // This runs on every frame
+    final ls = pose.landmarks[PoseLandmarkType.leftShoulder];
+    final rs = pose.landmarks[PoseLandmarkType.rightShoulder];
+    final le = pose.landmarks[PoseLandmarkType.leftElbow];
+    final re = pose.landmarks[PoseLandmarkType.rightElbow];
+    final lw = pose.landmarks[PoseLandmarkType.leftWrist];
+    final rw = pose.landmarks[PoseLandmarkType.rightWrist];
+    final lh = pose.landmarks[PoseLandmarkType.leftHip];
+    final rh = pose.landmarks[PoseLandmarkType.rightHip];
+    final lk = pose.landmarks[PoseLandmarkType.leftKnee];
+    final rk = pose.landmarks[PoseLandmarkType.rightKnee];
+    final la = pose.landmarks[PoseLandmarkType.leftAnkle];
+    final ra = pose.landmarks[PoseLandmarkType.rightAnkle];
+
+    if (ls != null && rs != null && le != null && re != null && 
+        lw != null && rw != null && lh != null && rh != null && 
+        lk != null && rk != null && la != null && ra != null) {
+      
+      // Calculate all 6 angles for the composite score
+      double lElbow = calculateAngle(ls, le, lw);
+      double rElbow = calculateAngle(rs, re, rw);
+      double lKnee = calculateAngle(lh, lk, la);
+      double rKnee = calculateAngle(rh, rk, ra);
+      double lShoulder = calculateAngle(le, ls, lh);
+      double rShoulder = calculateAngle(re, rs, rh);
+      
+      riskEngine.updateMetrics(
+        leftElbow: lElbow,
+        rightElbow: rElbow,
+        leftKnee: lKnee,
+        rightKnee: rKnee,
+        leftShoulder: lShoulder,
+        rightShoulder: rShoulder,
+      );
+    }
+  }
+
+  /// Speak form correction via TTS, throttled to avoid spam.
+  void _speakFormFeedback(FormAnalysisResult result) {
+    if (result.issues.isEmpty) return;
+    final now = DateTime.now();
+    final topIssue = result.issues.first;
+    // Don't speak any feedback within 4 seconds of the last one
+    if (now.difference(_lastSpokenTime).inSeconds < 4) return;
+    // Don't repeat the same issue within 7 seconds
+    if (_lastSpokenIssue == topIssue.issue &&
+        now.difference(_lastSpokenTime).inSeconds < 7) return;
+    _lastSpokenTime = now;
+    _lastSpokenIssue = topIssue.issue;
+    _tts.speak(topIssue.message);
+  }
+
   @override
   void dispose() {
     controller?.dispose();
     poseDetector.close();
     _pulseController.dispose();
+    _tts.stop();
     super.dispose();
+  }
+
+  // --- Start Tracking Logic ---
+  
+  void _recordRep() {
+    DateTime now = DateTime.now();
+    double timeSinceLastRep = 0.0;
+    
+    // Stop the rest timer and save the actual rest time taken
+    if (isRestTimerActive) {
+      isRestTimerActive = false;
+      if (restTimerStart != null) {
+        double actualRest = now.difference(restTimerStart!).inSeconds.toDouble();
+        _saveActualRestTime(actualRest);
+      }
+    }
+
+    if (lastRepTime != null) {
+      timeSinceLastRep = now.difference(lastRepTime!).inMilliseconds / 1000.0;
+    }
+    
+    lastRepTime = now;
+    
+    // Fetch ML metrics and reset memory for the next rep
+    final metrics = riskEngine.fetchAndResetMetrics();
+    final formData = formAnalyzer.fetchAndResetRepData();
+    
+    repDataToSave.add({
+      'rep_number': currentCount,
+      'time_since_last_rep': timeSinceLastRep,
+      'max_depth_angle': metrics['max_depth_angle'],
+      'left_right_imbalance_degrees': metrics['left_right_imbalance_degrees'],
+      'form_quality_score': formData['form_quality_score'],
+      'joint_angles': formData['joint_angles'],
+      'detected_issues': formData['detected_issues'],
+      'feedback_message': formData['feedback_message'],
+      'created_at': DateTime.now().toIso8601String(),
+    });
+
+    // 🔔 Check if we hit the schedule target
+    _checkScheduledTarget();
+  }
+
+  /// Queries Supabase for a schedule matching the detected exercise.
+  Future<void> _lookupSchedule(ExcerciseType type) async {
+    final title = ExerciseDataModel.allExercises()
+        .firstWhere((e) => e.type == type,
+            orElse: () => ExerciseDataModel.allExercises().first)
+        .title;
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      final result = await Supabase.instance.client
+          .from('workout_schedules')
+          .select()
+          .eq('user_id', userId)
+          .ilike('exercise_name', title)
+          .limit(1);
+      if (result.isNotEmpty && mounted) {
+        setState(() => _scheduleItem = Map<String, dynamic>.from(result.first));
+        _tts.speak('Schedule found for $title. ${_scheduleItem!['target_reps']} reps, ${_scheduleItem!['target_sets']} sets. Go!');
+      }
+    } catch (_) {
+      // No schedule - free workout, ignore
+    }
+  }
+
+  void _checkScheduledTarget() {
+    if (_scheduleItem == null) return;
+
+    // ✅ Safe type parsing — Supabase can return num instead of int
+    final int targetReps = (_scheduleItem!['target_reps'] as num).toInt();
+    final int targetSets = (_scheduleItem!['target_sets'] as num).toInt();
+    final int restSecs   = (_scheduleItem!['rest_time_seconds'] as num).toInt();
+    final String exerciseName = _scheduleItem!['exercise_name']?.toString() ?? exerciseTitle;
+
+    if (currentCount == targetReps && !_scheduleTriggered) {
+      _scheduleTriggered = true;
+      controller?.stopImageStream();
+
+      // Capture set number NOW before _finishSet() increments it
+      final int completedSet = currentSetNumber;
+      final bool isLastSet = completedSet >= targetSets;
+
+      if (isLastSet) {
+        debugPrint('[AutoDetect] Final set complete ($completedSet/$targetSets). Popping with data.');
+        _tts.speak('Your $exerciseName sets are complete. Well done!');
+        
+        Future.delayed(const Duration(milliseconds: 600), () async {
+          if (!mounted) return;
+          final String? savedId = await _finishSet(showDialog: false);
+          if (!mounted) return;
+          Navigator.of(context).pop({
+            'action': 'save_workout',
+            'setId': savedId,
+            'exerciseName': detectedExercise.toString().split('.').last,
+            'setNumber': completedSet,
+            'reps': currentCount,
+          });
+        });
+      } else {
+        // 🔁 Between sets → show countdown rest timer (RestTimerScreen speaks)
+        _finishSet().then((_) {
+          if (!mounted) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RestTimerScreen(
+                restSeconds: restSecs,
+                message: 'Set $completedSet complete!\nRest ${restSecs}s before next set.',
+                onRestComplete: () {
+                  Navigator.of(context).pop();
+                  _scheduleTriggered = false;
+                  // Keep same exercise — just resume counting (reps already reset by _finishSet)
+                  controller?.startImageStream(
+                    (image) => { if (!isBusy) { isBusy = true, img = image, doPoseEstimationOnFrame() } },
+                  );
+                },
+              ),
+            ),
+          );
+        });
+      }
+    }
+  }
+
+  Future<String?> _finishSet({bool showDialog = true}) async {
+    if (currentCount == 0 || isSaving) return null;
+    
+    final int completedSetNumber = currentSetNumber;
+    
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final supabase = Supabase.instance.client;
+      final String setId = const Uuid().v4();
+      currentSetId = setId;
+      lastCompletedSetId = setId;
+      final String userId = supabase.auth.currentUser!.id;
+      
+      final now = DateTime.now();
+      final double durationSeconds = setStartTime != null 
+          ? now.difference(setStartTime!).inSeconds.toDouble().clamp(1, 3600)
+          : 30.0;
+      
+      final double intensity = WorkoutService.calculateIntensity(
+        reps: currentCount,
+        durationSeconds: durationSeconds,
+      );
+
+      // Calculate average form quality and asymmetry
+      double avgFormQuality = 0;
+      double avgAsymmetry = 0;
+      if (repDataToSave.isNotEmpty) {
+        avgFormQuality = repDataToSave.map((r) => (r['form_quality_score'] as num?)?.toDouble() ?? 0.0).reduce((a, b) => a + b) / repDataToSave.length;
+        avgAsymmetry = repDataToSave.map((r) => (r['left_right_imbalance_degrees'] as num?)?.toDouble() ?? 0.0).reduce((a, b) => a + b) / repDataToSave.length;
+      }
+
+      // 1. Save Set
+      await supabase.from('exercise_sets').insert({
+        'id': setId,
+        'user_id': userId,
+        'exercise_name': detectedExercise.toString().split('.').last,
+        'set_number': currentSetNumber,
+        'total_reps': currentCount,
+        'duration_seconds': durationSeconds,
+        'intensity': intensity,
+        'form_quality_score': avgFormQuality,
+        'muscle_asymmetry_score': avgAsymmetry,
+        'exercise_date': '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+        'exercise_time': '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+        'created_at': now.toIso8601String(),
+      });
+      
+      // 2. Save Reps
+      if (repDataToSave.isNotEmpty) {
+        final repsToInsert = repDataToSave.map((rep) => {
+          'id': const Uuid().v4(),
+          'user_id': userId,
+          'set_id': setId,
+          'rep_number': rep['rep_number'],
+          'time_since_last_rep': rep['time_since_last_rep'],
+          'max_depth_angle': rep['max_depth_angle'],
+          'left_right_imbalance_degrees': rep['left_right_imbalance_degrees'],
+          'form_quality_score': rep['form_quality_score'],
+          'joint_angles': rep['joint_angles'],
+          'detected_issues': rep['detected_issues'],
+          'feedback_message': rep['feedback_message'],
+          'created_at': rep['created_at'],
+        }).toList();
+        
+        await supabase.from('exercise_reps').insert(repsToInsert);
+
+        // 3. Save Form Analyses (for reps with issues)
+        final issuesToInsert = repDataToSave
+            .where((r) => (r['detected_issues'] as List?)?.isNotEmpty ?? false)
+            .map((rep) => {
+              'id': const Uuid().v4(),
+              'set_id': setId,
+              'form_quality_score': rep['form_quality_score'],
+              'muscle_asymmetry_score': rep['left_right_imbalance_degrees'],
+              'joint_angles': rep['joint_angles'],
+              'detected_issues': rep['detected_issues'],
+              'feedback_message': rep['feedback_message'],
+              'created_at': DateTime.now().toIso8601String(),
+            }).toList();
+            
+        if (issuesToInsert.isNotEmpty) {
+          await supabase.from('form_analyses').insert(issuesToInsert);
+        }
+      }
+      
+      // Reset for next set
+      setState(() {
+        currentSetNumber++;
+        setStartTime = DateTime.now(); // Reset timer for the next set
+        pushUpCount = 0;
+        squatCount = 0;
+        plankToDownwardDogCount = 0;
+        jumpingJackCount = 0;
+        highKneeCount = 0;
+        
+        lastRepTime = null;
+        repDataToSave.clear();
+        isSaving = false;
+        
+        // Start tracking rest time
+        if (_scheduleItem != null) {
+          isRestTimerActive = true;
+          restTimerStart = DateTime.now();
+          restSecsForSet = (_scheduleItem!['rest_time_seconds'] as num).toInt();
+        }
+
+        // Only re-enter auto-detect mode if there's NO active schedule
+        if (_scheduleItem == null) {
+          detectedExercise = null;
+          isDetecting = true;
+          _scanResults = null;
+          ExerciseClassifier.reset(); // Wipe old history so strict 5-frame detection starts fresh
+        }
+      });
+      
+      if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Set $completedSetNumber completed & saved!'),
+          backgroundColor: AppTheme.success,
+        )
+      );
+    }
+    return setId;
+  } catch (error) {
+       setState(() {
+        isSaving = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving set: $error'),
+            backgroundColor: Colors.red,
+          )
+        );
+      }
+    }
   }
 
   @override
@@ -238,6 +615,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
           ),
           
           // Gradient Overlay Bottom
+          // Gradient Overlay Bottom
           Positioned(
             bottom: 0,
             left: 0,
@@ -257,6 +635,49 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
             ),
           ),
           
+          // Rest timer overlay (only after first set, before next set starts, not last set)
+          if (isRestTimerActive && currentCount == 0 && currentSetNumber > 1 && (_scheduleItem?['target_sets'] == null || currentSetNumber <= (_scheduleItem!['target_sets'] as num).toInt()))
+            Positioned(
+              top: 120,
+              left: 0,
+              right: 0,
+              child: Column(
+                children: [
+                  const Text(
+                    'Rest Countdown',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  StreamBuilder<int>(
+                    stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+                    builder: (context, snapshot) {
+                      int elapsed = 0;
+                      if (restTimerStart != null) {
+                        elapsed = DateTime.now().difference(restTimerStart!).inSeconds;
+                      }
+                      int countdown = restSecsForSet - elapsed;
+                      countdown = countdown < 0 ? 0 : countdown;
+                      int exceeded = elapsed - restSecsForSet;
+                      exceeded = exceeded < 0 ? 0 : exceeded;
+                      return Column(
+                        children: [
+                          Text(
+                            'Time Left: $countdown s',
+                            style: const TextStyle(color: Colors.white, fontSize: 18),
+                          ),
+                          if (exceeded > 0)
+                            Text(
+                              'Exceeded: $exceeded s',
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
           // Header
           Positioned(
             top: 0,
@@ -269,7 +690,42 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
                   children: [
                     // Back Button
                     GestureDetector(
-                      onTap: () => Navigator.pop(context),
+                      onTap: () async {
+                        if (currentCount > 0) {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: AppTheme.bgDarkSecondary,
+                              title: const Text('Exit Workout?', style: TextStyle(color: Colors.white)),
+                              content: const Text('Do you want to save your progress before leaving?', style: TextStyle(color: Colors.white70)),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Discard')),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondary),
+                                  child: const Text('Save & Exit'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            if (mounted) {
+                              final String? savedId = await _finishSet(showDialog: false);
+                              Navigator.pop(context, {
+                                'action': 'save_workout',
+                                'setId': savedId,
+                                'exerciseName': detectedExercise.toString().split('.').last,
+                                'setNumber': currentSetNumber,
+                                'reps': currentCount,
+                              });
+                            }
+                          } else if (confirm == false) {
+                            if (mounted) Navigator.pop(context);
+                          }
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -450,6 +906,52 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
               ),
             ),
           
+          // Finish Set Button
+          if (!isDetecting && currentCount > 0)
+            Positioned(
+              bottom: 40,
+              left: 20,
+              child: InkWell(
+                onTap: isSaving ? null : _finishSet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withAlpha(51),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSaving)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      else
+                        const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Finish Set',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Calories (when exercise detected)
           if (!isDetecting)
             Positioned(
@@ -519,6 +1021,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     } else if (avgElbowAngle > 160 && isLowered && inPlankPosition) {
       pushUpCount++;
       isLowered = false;
+      _recordRep();
       setState(() {});
     }
   }
@@ -548,6 +1051,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     } else if (!deepSquat && isSquatting) {
       squatCount++;
       isSquatting = false;
+      _recordRep();
       setState(() {});
     }
   }
@@ -579,6 +1083,8 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     } else if (isPlank && isInDownwardDog) {
       plankToDownwardDogCount++;
       isInDownwardDog = false;
+      _recordRep();
+      setState(() {});
     }
   }
 
@@ -613,6 +1119,8 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     } else if (!armsUp && !legsApart && isJumpingJackOpen) {
       jumpingJackCount++;
       isJumpingJackOpen = false;
+      _recordRep();
+      setState(() {});
     }
   }
 
@@ -637,6 +1145,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     if (isLeftKneeHigh && !leftKneeUp) {
       leftKneeUp = true;
       highKneeCount++;
+      _recordRep();
       setState(() {});
     } else if (!isLeftKneeHigh) {
       leftKneeUp = false;
@@ -645,6 +1154,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     if (isRightKneeHigh && !rightKneeUp) {
       rightKneeUp = true;
       highKneeCount++;
+      _recordRep();
       setState(() {});
     } else if (!isRightKneeHigh) {
       rightKneeUp = false;
@@ -717,7 +1227,16 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
       controller!.value.previewSize!.width,
     );
     CustomPainter painter = PosePainter(imageSize, _scanResults);
-    return CustomPaint(painter: painter);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(painter: painter),
+        if (formAnalyzer.currentIssues.isNotEmpty)
+          CustomPaint(
+            painter: FormOverlayPainter(formAnalyzer.currentIssues, imageSize),
+          ),
+      ],
+    );
   }
 }
 
