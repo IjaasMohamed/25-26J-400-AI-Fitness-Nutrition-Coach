@@ -4,11 +4,17 @@ import joblib
 import pandas as pd
 import numpy as np
 import os
+import json
 import tensorflow as tf
+import requests as http_requests
 
 app = Flask(__name__)
 CORS(app)
 
+# --- GEMINI API CONFIGURATION ---
+GEMINI_API_KEY = "AIzaSyDMrk2R3WzQMBu9F9KUTSwgbpR2gVhOAkc"
+GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
 # --- PATH CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -163,6 +169,164 @@ def predict_injury():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+# --- ENDPOINT: GEMINI AI RISK SUGGESTIONS ---
+@app.route('/risk-suggestions', methods=['POST'])
+def get_risk_suggestions():
+    """
+    Receives risk metrics + prediction result, calls Gemini API for
+    personalized injury risk reduction suggestions.
+    """
+    try:
+        data = request.get_json()
+        
+        risk_label = data.get('risk_label', 'Unknown')
+        probability = data.get('probability', 0.0)
+        
+        risk_profile = {
+            "Age": data.get("Age", 0),
+            "Gender": "Male" if data.get("Gender", 1) == 1 else "Female",
+            "Height_cm": data.get("Height_cm", 0),
+            "Weight_kg": data.get("Weight_kg", 0),
+            "BMI": data.get("BMI", 0),
+            "Training_Frequency_days_per_week": data.get("Training_Frequency", 0),
+            "Training_Duration_mins": data.get("Training_Duration", 0),
+            "Warmup_Time_mins": data.get("Warmup_Time", 0),
+            "Flexibility_Score_0_100": data.get("Flexibility_Score", 0),
+            "Muscle_Asymmetry_0_20": data.get("Muscle_Asymmetry", 0),
+            "Injury_History_count": data.get("Injury_History", 0),
+            "Training_Intensity_1_10": data.get("Training_Intensity", 0),
+        }
+        
+        prompt = f"""You are FitForge AI Safety Advisor, a sports medicine and exercise science AI assistant.
+Analyze this user's injury risk profile and provide SPECIFIC, ACTIONABLE suggestions to reduce their injury risk.
+
+Risk Prediction Result: {risk_label} (AI Confidence: {probability*100:.1f}%)
+
+User's Metrics:
+{json.dumps(risk_profile, indent=2)}
+
+RULES:
+1. Focus on the metrics that are most concerning.
+2. Provide practical suggestions the user can implement TODAY.
+3. Each suggestion must directly address a specific risk factor from their data.
+4. Be encouraging but honest about risks.
+5. ALWAYS respond in valid JSON format with this exact structure:
+
+{{
+  "summary": "One sentence describing their overall risk situation",
+  "warning": "Critical warning if any metric is dangerously off, or null if not critical",
+  "suggestions": [
+    {{
+      "title": "Short action title",
+      "description": "Detailed 2-3 sentence explanation",
+      "priority": "high" or "medium" or "low"
+    }}
+  ]
+}}
+
+Provide 3-5 suggestions ordered by priority. Return ONLY raw JSON, no markdown fences."""
+
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 1024,
+                "responseMimeType": "application/json"
+            }
+        }
+        
+        print(f"[Gemini] Calling API for risk suggestions...")
+        response = http_requests.post(GEMINI_API_URL, json=payload, timeout=30)
+        
+        if response.status_code != 200:
+            print(f"[Gemini] API Error {response.status_code}: {response.text}")
+            return jsonify({"error": f"Gemini API returned {response.status_code}"}), 502
+        
+        gemini_response = response.json()
+        raw_content = gemini_response["candidates"][0]["content"]["parts"][0]["text"]
+        print(f"[Gemini] Raw response: {raw_content[:200]}...")
+        
+        # Parse JSON — strip markdown fences if present
+        cleaned = raw_content.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.split("\n")
+            cleaned = "\n".join(lines[1:-1]) if len(lines) > 2 else cleaned
+        
+        suggestions_data = json.loads(cleaned)
+        
+        if "suggestions" not in suggestions_data:
+            suggestions_data["suggestions"] = []
+        if "summary" not in suggestions_data:
+            suggestions_data["summary"] = "Risk analysis complete."
+        if "warning" not in suggestions_data:
+            suggestions_data["warning"] = None
+            
+        print(f"[Gemini] Successfully parsed {len(suggestions_data['suggestions'])} suggestions")
+        return jsonify(suggestions_data)
+        
+    except json.JSONDecodeError as e:
+        print(f"[Gemini] JSON Parse Error: {e}")
+        return jsonify({
+            "summary": "AI analysis completed but response format was unexpected.",
+            "warning": None,
+            "suggestions": [
+                {"title": "Consult a Professional", "description": "Your risk profile indicates elevated injury risk. We recommend consulting with a sports medicine professional for a personalized assessment.", "priority": "high"},
+                {"title": "Increase Warmup Duration", "description": "Ensure you warm up for at least 10-15 minutes before each training session. Include dynamic stretching and light cardio.", "priority": "medium"},
+                {"title": "Monitor Training Intensity", "description": "Gradually increase your training intensity over time. Avoid sudden jumps in weight, duration, or frequency.", "priority": "medium"}
+            ]
+        })
+    except Exception as e:
+        print(f"[Gemini] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# --- ENDPOINT: GEMINI AI FOLLOW-UP CHAT ---
+@app.route('/risk-chat', methods=['POST'])
+def risk_chat():
+    """
+    Allows follow-up questions about risk suggestions.
+    Expects: { "message": "user question", "risk_context": {...} }
+    """
+    try:
+        data = request.get_json()
+        user_message = data.get("message", "")
+        risk_context = data.get("risk_context", {})
+        
+        if not user_message:
+            return jsonify({"error": "No message provided"}), 400
+        
+        context_msg = f"\nUser's risk profile: {json.dumps(risk_context)}" if risk_context else ""
+        
+        prompt = f"""You are FitForge AI Safety Advisor, a sports medicine and exercise science AI assistant.
+The user has received injury risk suggestions and is asking a follow-up question.
+Provide clear, specific, actionable advice. Keep responses concise (2-4 sentences).
+Do NOT give medical diagnoses - recommend professional consultation for medical concerns.{context_msg}
+
+User's question: {user_message}"""
+
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 512
+            }
+        }
+        
+        response = http_requests.post(GEMINI_API_URL, json=payload, timeout=30)
+        
+        if response.status_code != 200:
+            return jsonify({"error": f"Gemini API returned {response.status_code}"}), 502
+        
+        gemini_response = response.json()
+        reply = gemini_response["candidates"][0]["content"]["parts"][0]["text"]
+        
+        return jsonify({"reply": reply})
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

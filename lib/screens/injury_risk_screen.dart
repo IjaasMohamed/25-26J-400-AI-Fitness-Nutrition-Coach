@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/injury_risk_request.dart';
 import '../models/injury_risk_response.dart';
+import '../models/risk_suggestion_response.dart';
 import '../services/injury_risk_api_service.dart';
+import '../services/grok_suggestion_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class InjuryRiskScreen extends StatefulWidget {
@@ -33,6 +35,11 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
   bool _isLoading = false;
   InjuryRiskResponse? _predictionResult;
   String? _errorMessage;
+
+  // Grok AI Suggestions
+  bool _isLoadingSuggestions = false;
+  RiskSuggestionResponse? _suggestions;
+  InjuryRiskRequest? _lastRequest;
 
   @override
   void initState() {
@@ -174,6 +181,7 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
         injuryHistory: _injuryHistory,
         trainingIntensity: double.parse(_trainingIntensityController.text),
       );
+      _lastRequest = request;
 
       final result = await InjuryRiskApiService.predictInjuryRisk(request);
 
@@ -199,6 +207,11 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
             });
           }
         }
+      }
+
+      // Fetch Grok AI suggestions after prediction
+      if (result != null && _lastRequest != null) {
+        _fetchGrokSuggestions(_lastRequest!, result);
       }
 
     } catch (e) {
@@ -365,8 +378,118 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
                     ),
                   ),
                 ),
+
+              // Grok AI Suggestions
+              if (_isLoadingSuggestions)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 12),
+                          Text('Getting AI suggestions...'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              if (_suggestions != null)
+                _buildSuggestionsCard(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _fetchGrokSuggestions(InjuryRiskRequest request, InjuryRiskResponse prediction) async {
+    setState(() {
+      _isLoadingSuggestions = true;
+      _suggestions = null;
+    });
+    try {
+      final result = await GrokSuggestionService.fetchSuggestions(
+        riskRequest: request,
+        prediction: prediction,
+      );
+      if (mounted) setState(() { _suggestions = result; _isLoadingSuggestions = false; });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingSuggestions = false);
+    }
+  }
+
+  Widget _buildSuggestionsCard() {
+    final s = _suggestions!;
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(top: 16),
+      color: Colors.deepPurple.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.auto_awesome, color: Colors.deepPurple),
+                SizedBox(width: 8),
+                Text('AI Safety Suggestions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(s.summary, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+            if (s.warning != null && s.warning!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning, color: Colors.red, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(s.warning!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            ...s.suggestions.map((item) {
+              Color pColor = item.priority == 'high' ? Colors.red : item.priority == 'medium' ? Colors.orange : Colors.green;
+              String pIcon = item.priority == 'high' ? '🔴' : item.priority == 'medium' ? '🟡' : '🟢';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: pColor.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: pColor.withAlpha(60)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(pIcon),
+                        const SizedBox(width: 6),
+                        Expanded(child: Text(item.title, style: TextStyle(fontWeight: FontWeight.w600, color: pColor))),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(item.description, style: const TextStyle(fontSize: 13, color: Colors.black54, height: 1.4)),
+                  ],
+                ),
+              );
+            }),
+          ],
         ),
       ),
     );

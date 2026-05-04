@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
 import 'package:pose_detection_realtime/services/injury_risk_api_service.dart';
+import 'package:pose_detection_realtime/services/grok_suggestion_service.dart';
 import 'package:pose_detection_realtime/models/injury_risk_request.dart';
 import 'package:pose_detection_realtime/models/injury_risk_response.dart';
+import 'package:pose_detection_realtime/models/risk_suggestion_response.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RiskDashboardScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class RiskDashboardScreen extends StatefulWidget {
 class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
   bool _isLoading = true;
   InjuryRiskResponse? _prediction;
+  InjuryRiskRequest? _lastRequest;
   String? _error;
   
   // Stats to show
@@ -24,16 +27,34 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
   int _injuryCount = 0;
   String _lastHeartRate = '-';
 
+  // Grok AI Suggestions
+  bool _isLoadingSuggestions = false;
+  RiskSuggestionResponse? _suggestions;
+  String? _suggestionsError;
+
+  // Chat
+  final TextEditingController _chatController = TextEditingController();
+  final List<_ChatMessage> _chatMessages = [];
+  bool _isChatLoading = false;
+
   @override
   void initState() {
     super.initState();
     _fetchAndPredict();
   }
 
+  @override
+  void dispose() {
+    _chatController.dispose();
+    super.dispose();
+  }
+
   Future<void> _fetchAndPredict() async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _suggestions = null;
+      _suggestionsError = null;
     });
 
     try {
@@ -105,7 +126,6 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
         }
       } catch (e) {
         debugPrint('Stats Fetch Error (likely missing column): $e');
-        // If intensity column is missing, we still want the dashboard to work
         try {
           final setsDataRaw = await Supabase.instance.client
               .from('exercise_sets')
@@ -118,10 +138,8 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
           if (setsData.isNotEmpty) {
             final uniqueDays = setsData.map((s) => s['exercise_date'] ?? (s['created_at'] as String).substring(0, 10)).toSet().length;
             _frequency = (uniqueDays / (30 / 7));
-            _avgIntensity = 5.0; // Default fallback
-            
-            // Calculate average duration roughly
-            _avgDuration = (setsData.length * 10) / 4.2; // Very rough estimation
+            _avgIntensity = 5.0;
+            _avgDuration = (setsData.length * 10) / 4.2;
           }
         } catch (innerE) {
           debugPrint('Fallback Stats Fetch Error: $innerE');
@@ -151,14 +169,78 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
       if (mounted) {
         setState(() {
           _prediction = result;
+          _lastRequest = request;
           _isLoading = false;
         });
+
+        // 4. Auto-fetch Grok suggestions if risk detected
+        if (result != null) {
+          _fetchGrokSuggestions(request, result);
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchGrokSuggestions(InjuryRiskRequest request, InjuryRiskResponse prediction) async {
+    setState(() {
+      _isLoadingSuggestions = true;
+      _suggestionsError = null;
+    });
+
+    try {
+      final result = await GrokSuggestionService.fetchSuggestions(
+        riskRequest: request,
+        prediction: prediction,
+      );
+      if (mounted) {
+        setState(() {
+          _suggestions = result;
+          _isLoadingSuggestions = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _suggestionsError = e.toString();
+          _isLoadingSuggestions = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _sendChatMessage() async {
+    final text = _chatController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _chatMessages.add(_ChatMessage(text: text, isUser: true));
+      _isChatLoading = true;
+    });
+    _chatController.clear();
+
+    try {
+      final reply = await GrokSuggestionService.sendChatMessage(
+        message: text,
+        riskContext: _lastRequest?.toJson(),
+      );
+      if (mounted) {
+        setState(() {
+          _chatMessages.add(_ChatMessage(text: reply, isUser: false));
+          _isChatLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _chatMessages.add(_ChatMessage(text: 'Error: $e', isUser: false));
+          _isChatLoading = false;
         });
       }
     }
@@ -214,6 +296,10 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
                     _buildRiskCard(),
                     const SizedBox(height: 24),
                     _buildStatsGrid(),
+                    const SizedBox(height: 24),
+                    _buildAiSuggestionsSection(),
+                    const SizedBox(height: 24),
+                    _buildChatSection(),
                     const SizedBox(height: 30),
                     _buildInfoCard(),
                   ],
@@ -330,6 +416,280 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
     );
   }
 
+  // --- AI SUGGESTIONS SECTION ---
+  Widget _buildAiSuggestionsSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardGlass,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primary.withAlpha(60)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.primary.withAlpha(20), Colors.transparent],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('AI Safety Advisor', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('Powered by Grok AI', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          if (_isLoadingSuggestions)
+            _buildLoadingIndicator()
+          else if (_suggestionsError != null)
+            _buildSuggestionsError()
+          else if (_suggestions != null)
+            _buildSuggestionsList()
+          else
+            const Text('Waiting for risk analysis...', style: TextStyle(color: Colors.white54)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary)),
+          SizedBox(width: 12),
+          Text('Analyzing your risk profile...', style: TextStyle(color: Colors.white70, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsError() {
+    return Column(
+      children: [
+        Text('Could not load suggestions', style: TextStyle(color: Colors.red.shade300)),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () {
+            if (_lastRequest != null && _prediction != null) {
+              _fetchGrokSuggestions(_lastRequest!, _prediction!);
+            }
+          },
+          child: const Text('Retry', style: TextStyle(color: AppTheme.secondary)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionsList() {
+    final s = _suggestions!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Summary
+        Text(s.summary, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+        const SizedBox(height: 12),
+
+        // Warning banner
+        if (s.warning != null && s.warning!.isNotEmpty)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withAlpha(30),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.redAccent.withAlpha(80)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(s.warning!, style: const TextStyle(color: Colors.redAccent, fontSize: 13))),
+              ],
+            ),
+          ),
+
+        // Suggestion cards
+        ...s.suggestions.map((item) => _buildSuggestionCard(item)),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionCard(RiskSuggestion item) {
+    Color priorityColor;
+    String priorityIcon;
+    switch (item.priority.toLowerCase()) {
+      case 'high':
+        priorityColor = Colors.redAccent;
+        priorityIcon = '🔴';
+        break;
+      case 'medium':
+        priorityColor = Colors.orangeAccent;
+        priorityIcon = '🟡';
+        break;
+      default:
+        priorityColor = AppTheme.success;
+        priorityIcon = '🟢';
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: priorityColor.withAlpha(15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: priorityColor.withAlpha(40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(priorityIcon, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: TextStyle(color: priorityColor, fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: priorityColor.withAlpha(30),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item.priority.toUpperCase(),
+                  style: TextStyle(color: priorityColor, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(item.description, style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4)),
+        ],
+      ),
+    );
+  }
+
+  // --- CHAT SECTION ---
+  Widget _buildChatSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardGlass,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withAlpha(20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.chat_bubble_outline, color: AppTheme.secondary, size: 18),
+              SizedBox(width: 8),
+              Text('Ask AI Follow-up', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Chat messages
+          if (_chatMessages.isNotEmpty)
+            Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _chatMessages.length,
+                itemBuilder: (ctx, i) {
+                  final msg = _chatMessages[i];
+                  return Align(
+                    alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                      decoration: BoxDecoration(
+                        color: msg.isUser ? AppTheme.primary.withAlpha(60) : Colors.white.withAlpha(15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(msg.text, style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          if (_isChatLoading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.secondary)),
+                  SizedBox(width: 8),
+                  Text('Thinking...', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                ],
+              ),
+            ),
+
+          // Input
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _chatController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. "How should I warm up?"',
+                    hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                    filled: true,
+                    fillColor: Colors.white.withAlpha(10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                  onSubmitted: (_) => _sendChatMessage(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _isChatLoading ? null : _sendChatMessage,
+                icon: const Icon(Icons.send_rounded, color: AppTheme.secondary),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInfoCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -352,4 +712,10 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
       ),
     );
   }
+}
+
+class _ChatMessage {
+  final String text;
+  final bool isUser;
+  _ChatMessage({required this.text, required this.isUser});
 }

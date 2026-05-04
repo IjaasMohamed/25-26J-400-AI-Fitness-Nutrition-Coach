@@ -10,6 +10,10 @@ class ApiConfig {
   static const String lstmPerformanceApiUrl = "http://$serverIp:5000/predict_lstm";
   static const String injuryRiskApiUrl = "http://$serverIp:5000/predict-injury-risk";
   
+  // Grok AI Suggestion endpoints
+  static const String riskSuggestionsApiUrl = "http://$serverIp:5000/risk-suggestions";
+  static const String riskChatApiUrl = "http://$serverIp:5000/risk-chat";
+  
   // Timeout for API calls to prevent UI hanging
   static const Duration requestTimeout = Duration(seconds: 10);
 }
