@@ -205,7 +205,6 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
           
           // Form Analysis
           final formResult = formAnalyzer.analyzeFrame(detectedExercise!, poses.first.landmarks);
-          _speakFormFeedback(formResult);
 
           switch (detectedExercise!) {
             case ExcerciseType.PushUps:
@@ -273,20 +272,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     }
   }
 
-  /// Speak form correction via TTS, throttled to avoid spam.
-  void _speakFormFeedback(FormAnalysisResult result) {
-    if (result.issues.isEmpty) return;
-    final now = DateTime.now();
-    final topIssue = result.issues.first;
-    // Don't speak any feedback within 4 seconds of the last one
-    if (now.difference(_lastSpokenTime).inSeconds < 4) return;
-    // Don't repeat the same issue within 7 seconds
-    if (_lastSpokenIssue == topIssue.issue &&
-        now.difference(_lastSpokenTime).inSeconds < 7) return;
-    _lastSpokenTime = now;
-    _lastSpokenIssue = topIssue.issue;
-    _tts.speak(topIssue.message);
-  }
+
 
   @override
   void dispose() {
@@ -1227,16 +1213,7 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
       controller!.value.previewSize!.width,
     );
     CustomPainter painter = PosePainter(imageSize, _scanResults);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        CustomPaint(painter: painter),
-        if (formAnalyzer.currentIssues.isNotEmpty)
-          CustomPaint(
-            painter: FormOverlayPainter(formAnalyzer.currentIssues, imageSize),
-          ),
-      ],
-    );
+    return CustomPaint(painter: painter);
   }
 }
 

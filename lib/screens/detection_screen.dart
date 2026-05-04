@@ -122,7 +122,6 @@ class _DetectionScreenState extends State<DetectionScreen> with SingleTickerProv
           poses.first.landmarks,
         );
         _currentFormResult = formResult;
-        _speakFormFeedback(formResult);
 
         if (widget.exerciseDataModel.type == ExcerciseType.PushUps) {
           detectPushUp(poses.first.landmarks);
@@ -184,22 +183,7 @@ class _DetectionScreenState extends State<DetectionScreen> with SingleTickerProv
     }
   }
 
-  /// Speak form correction via TTS, throttled to avoid spam.
-  void _speakFormFeedback(FormAnalysisResult result) {
-    if (result.issues.isEmpty) return;
-    final now = DateTime.now();
-    final topIssue = result.issues.first;
-    // Don't speak any feedback within 4 seconds of the last one
-    if (_lastFeedbackSpokenTime != null &&
-        now.difference(_lastFeedbackSpokenTime!).inSeconds < 4) return;
-    // Don't repeat the same issue within 7 seconds
-    if (_lastSpokenIssue == topIssue.issue &&
-        _lastFeedbackSpokenTime != null &&
-        now.difference(_lastFeedbackSpokenTime!).inSeconds < 7) return;
-    _lastFeedbackSpokenTime = now;
-    _lastSpokenIssue = topIssue.issue;
-    _tts.speak(topIssue.message);
-  }
+
 
   @override
   void dispose() {
