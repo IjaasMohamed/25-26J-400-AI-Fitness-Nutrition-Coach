@@ -102,8 +102,9 @@ class LSTMPredictionService {
       } else {
         return LSTMPredictionResult(error: "Backend error: ${response.statusCode}");
       }
-    } catch (e) {
+    } catch (e, stacktrace) {
       print("LSTM Prediction Service Error: $e");
+      print("LSTM Stacktrace: $stacktrace");
       return LSTMPredictionResult(error: "Connection to Prediction API failed: $e");
     }
   }

@@ -210,7 +210,10 @@ class ExerciseClassifier {
     double bc = _distance(b, c);
     double ac = _distance(a, c);
     
-    double angle = acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc)) * (180 / pi);
+    if (ab == 0 || bc == 0) return 0.0;
+    
+    double cosVal = ((ab * ab + bc * bc - ac * ac) / (2 * ab * bc)).clamp(-1.0, 1.0);
+    double angle = acos(cosVal) * (180 / pi);
     return angle;
   }
   

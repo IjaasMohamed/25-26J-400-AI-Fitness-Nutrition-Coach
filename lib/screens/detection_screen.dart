@@ -406,6 +406,9 @@ class _DetectionScreenState extends State<DetectionScreen> with SingleTickerProv
             .map((r) => (r['left_right_imbalance_degrees'] as num?)?.toDouble() ?? 0.0)
             .reduce((a, b) => a + b) / repDataToSave.length;
       }
+      
+      if (avgFormScore.isNaN || avgFormScore.isInfinite) avgFormScore = 0.0;
+      if (avgAsymmetry.isNaN || avgAsymmetry.isInfinite) avgAsymmetry = 0.0;
 
       // 1. Save Set (with form data)
       await supabase.from('exercise_sets').insert({
@@ -446,8 +449,8 @@ class _DetectionScreenState extends State<DetectionScreen> with SingleTickerProv
             .where((r) => (r['detected_issues'] as List?)?.isNotEmpty ?? false)
             .map((rep) => {
               'set_id': setId,
-              'form_quality_score': rep['form_quality_score'],
-              'muscle_asymmetry_score': rep['left_right_imbalance_degrees'],
+              'form_quality_score': double.parse(((rep['form_quality_score'] as num?)?.toDouble() ?? 100.0).toStringAsFixed(1)),
+              'muscle_asymmetry_score': double.parse(((rep['left_right_imbalance_degrees'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)).clamp(0, 20),
               'joint_angles': rep['joint_angles'],
               'detected_issues': rep['detected_issues'],
               'feedback_message': rep['feedback_message'],
@@ -1198,7 +1201,10 @@ class _DetectionScreenState extends State<DetectionScreen> with SingleTickerProv
     double b = distance(shoulder, elbow);
     double c = distance(shoulder, wrist);
 
-    double angle = acos((b * b + a * a - c * c) / (2 * b * a)) * (180 / pi);
+    if (b == 0 || a == 0) return 0.0;
+
+    double cosVal = ((b * b + a * a - c * c) / (2 * b * a)).clamp(-1.0, 1.0);
+    double angle = acos(cosVal) * (180 / pi);
     return angle;
   }
 

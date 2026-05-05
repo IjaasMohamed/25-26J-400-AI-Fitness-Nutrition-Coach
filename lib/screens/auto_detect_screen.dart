@@ -439,6 +439,9 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
         avgFormQuality = repDataToSave.map((r) => (r['form_quality_score'] as num?)?.toDouble() ?? 0.0).reduce((a, b) => a + b) / repDataToSave.length;
         avgAsymmetry = repDataToSave.map((r) => (r['left_right_imbalance_degrees'] as num?)?.toDouble() ?? 0.0).reduce((a, b) => a + b) / repDataToSave.length;
       }
+      
+      if (avgFormQuality.isNaN || avgFormQuality.isInfinite) avgFormQuality = 0.0;
+      if (avgAsymmetry.isNaN || avgAsymmetry.isInfinite) avgAsymmetry = 0.0;
 
       // 1. Save Set
       await supabase.from('exercise_sets').insert({
@@ -449,8 +452,8 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
         'total_reps': currentCount,
         'duration_seconds': durationSeconds,
         'intensity': intensity,
-        'form_quality_score': avgFormQuality,
-        'muscle_asymmetry_score': avgAsymmetry,
+        'form_quality_score': double.parse(avgFormQuality.toStringAsFixed(1)),
+        'muscle_asymmetry_score': double.parse(avgAsymmetry.toStringAsFixed(1)).clamp(0, 20),
         'exercise_date': '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
         'exercise_time': '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
         'created_at': now.toIso8601String(),
@@ -468,8 +471,6 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
           'left_right_imbalance_degrees': rep['left_right_imbalance_degrees'],
           'form_quality_score': rep['form_quality_score'],
           'joint_angles': rep['joint_angles'],
-          'detected_issues': rep['detected_issues'],
-          'feedback_message': rep['feedback_message'],
           'created_at': rep['created_at'],
         }).toList();
         
@@ -481,8 +482,8 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
             .map((rep) => {
               'id': const Uuid().v4(),
               'set_id': setId,
-              'form_quality_score': rep['form_quality_score'],
-              'muscle_asymmetry_score': rep['left_right_imbalance_degrees'],
+              'form_quality_score': double.parse(((rep['form_quality_score'] as num?)?.toDouble() ?? 100.0).toStringAsFixed(1)),
+              'muscle_asymmetry_score': double.parse(((rep['left_right_imbalance_degrees'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)).clamp(0, 20),
               'joint_angles': rep['joint_angles'],
               'detected_issues': rep['detected_issues'],
               'feedback_message': rep['feedback_message'],
@@ -1151,7 +1152,11 @@ class _AutoDetectScreenState extends State<AutoDetectScreen> with SingleTickerPr
     double ab = distance(a, b);
     double bc = distance(b, c);
     double ac = distance(a, c);
-    double angle = acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc)) * (180 / pi);
+    
+    if (ab == 0 || bc == 0) return 0.0;
+    
+    double cosVal = ((ab * ab + bc * bc - ac * ac) / (2 * ab * bc)).clamp(-1.0, 1.0);
+    double angle = acos(cosVal) * (180 / pi);
     return angle;
   }
 

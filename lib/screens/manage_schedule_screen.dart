@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
 import 'package:pose_detection_realtime/Model/ExerciseDataModel.dart';
 import 'package:pose_detection_realtime/screens/detection_screen.dart';
-import 'package:pose_detection_realtime/utils/performance_predictor.dart';
 
 class ManageScheduleScreen extends StatefulWidget {
   const ManageScheduleScreen({super.key});

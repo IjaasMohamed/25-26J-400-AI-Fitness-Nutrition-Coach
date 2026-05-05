@@ -82,7 +82,7 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
         final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30)).toIso8601String();
         final setsData = await Supabase.instance.client
             .from('exercise_sets')
-            .select('created_at, exercise_date, intensity')
+            .select('created_at, exercise_date, intensity, muscle_asymmetry_score')
             .eq('user_id', user.id)
             .gte('created_at', thirtyDaysAgo);
 
@@ -103,19 +103,28 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
           for (var times in setsByDay.values) {
             if (times.length > 1) {
               times.sort();
-              totalMinutes += times.last.difference(times.first).inMinutes.toDouble();
+              var diffMinutes = times.last.difference(times.first).inSeconds / 60.0;
+              double minRealisticDuration = times.length * 3.0; // Assume at least 3 mins per set
+              totalMinutes += (diffMinutes < minRealisticDuration) ? minRealisticDuration : diffMinutes;
             } else {
-              totalMinutes += 15; // Assume 15 min session if only one set was recorded
+              totalMinutes += 15.0; // Assume 15 min session if only one set was recorded
             }
           }
           final avgDuration = totalMinutes / setsByDay.length;
 
           // Calculate Average Intensity
           final intensities = setsData
-              .where((s) => s['intensity'] != null)
+              .where((s) => s.containsKey('intensity') && s['intensity'] != null)
               .map((s) => (s['intensity'] as num).toDouble())
               .toList();
           final avgIntensity = intensities.isEmpty ? 5.0 : intensities.reduce((a, b) => a + b) / intensities.length;
+
+          // Calculate Average Muscle Asymmetry
+          final asymmetries = setsData
+              .where((s) => s.containsKey('muscle_asymmetry_score') && s['muscle_asymmetry_score'] != null)
+              .map((s) => (s['muscle_asymmetry_score'] as num).toDouble())
+              .toList();
+          final avgAsymmetry = asymmetries.isEmpty ? 0.0 : asymmetries.reduce((a, b) => a + b) / asymmetries.length;
 
           if (mounted) {
             setState(() {
@@ -124,7 +133,7 @@ class _InjuryRiskScreenState extends State<InjuryRiskScreen> {
               _trainingIntensityController.text = avgIntensity.toStringAsFixed(1);
               _warmupTimeController.text = '10.0'; // Default reasonable value
               _flexibilityScoreController.text = '50.0'; // Default reasonable value (0-100)
-              _muscleAsymmetryController.text = '0.0'; // Default reasonable value (0-20)
+              _muscleAsymmetryController.text = avgAsymmetry.toStringAsFixed(1);
             });
           }
         }

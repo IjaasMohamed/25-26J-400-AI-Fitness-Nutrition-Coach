@@ -4,8 +4,6 @@ import 'package:pose_detection_realtime/Model/ExerciseDataModel.dart';
 import 'package:pose_detection_realtime/screens/components/workout_config_sheet.dart';
 import 'package:pose_detection_realtime/screens/auto_detect_screen.dart';
 import 'package:pose_detection_realtime/services/workout_service.dart';
-import 'package:pose_detection_realtime/models/performance_suggestion.dart';
-import 'package:pose_detection_realtime/services/prediction_service.dart';
 import 'package:pose_detection_realtime/screens/lstm_performance_insights_screen.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
 
@@ -18,40 +16,15 @@ class ExercisesScreen extends StatefulWidget {
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
   List<ExerciseDataModel> exerciseList = [];
-  PerformanceSuggestion? _topSuggestion;
-  bool _isSuggestionLoading = true;
 
   bool _isLstmLoading = false;
 
-  @override
   void initState() {
     super.initState();
     loadData();
-    _fetchTopSuggestion();
   }
 
-  Future<void> _fetchTopSuggestion() async {
-    try {
-      final predictor = PredictionService();
-      final results = await predictor.getSuggestions();
-      debugPrint("ExercisesScreen: Fetched ${results.length} suggestions.");
-      
-      if (mounted) {
-        setState(() {
-          if (results.isNotEmpty) {
-            _topSuggestion = results.firstWhere(
-              (s) => s.trend == 'up',
-              orElse: () => results.first,
-            );
-          }
-          _isSuggestionLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("ExercisesScreen: Fatal error fetching suggestions: $e");
-      if (mounted) setState(() => _isSuggestionLoading = false);
-    }
-  }
+
 
   Future<void> _handleLSTMPrediction() async {
     Navigator.push(

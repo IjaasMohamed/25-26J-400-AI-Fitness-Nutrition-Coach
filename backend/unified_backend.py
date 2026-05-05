@@ -22,18 +22,7 @@ MODEL_DIR = os.path.join(BASE_DIR, "..", "model")
 INJURY_MODELS_DIR = os.path.join(BASE_DIR, "models")
 
 # --- MODEL LOADING (SIMPLE PERFORMANCE) ---
-simple_perf_model = None
-ex_enc = None
-perf_enc = None
-try:
-    simp_path = os.path.join(MODEL_DIR, "performance_prediction_model (1).pkl")
-    if os.path.exists(simp_path):
-        simple_perf_model = joblib.load(simp_path)
-        ex_enc = joblib.load(os.path.join(BASE_DIR, "..", "exercise_encoder.pkl"))
-        perf_enc = joblib.load(os.path.join(BASE_DIR, "..", "performance_encoder.pkl"))
-        print("Simple Performance Model loaded.")
-except Exception as e:
-    print(f"Simple Perf Load Error: {e}")
+# Removed as per user request.
 
 # --- MODEL LOADING (LSTM PERFORMANCE) ---
 lstm_model = None
@@ -58,55 +47,37 @@ try:
         print("Injury Risk Model loaded from root directory.")
 except Exception as e:
     print(f"Injury Risk Load Error: {e}")
-# --- ENDPOINT: SIMPLE PERFORMANCE ---
-@app.route('/predict', methods=['POST'])
-def predict_simple():
-    if simple_perf_model is None:
-        return jsonify({"error": "Simple Performance Model not loaded"}), 500
-    try:
-        data = request.get_json()
-        ex_name = data.get('exercise', 'Push Ups')
-        ex_encoded = ex_enc.transform([ex_name])[0] if ex_enc else 0
-        
-        feats = {
-            'Sets': data.get('sets', 0),
-            'Total_Reps': data.get('total_reps', 0),
-            'Time_Mins': data.get('time_mins', 0.0),
-            'Rest_Between_Sets_Secs': data.get('rest_between_sets_secs', 0.0),
-            'Avg_Rest_Per_Rep_Secs': data.get('avg_rest_per_rep_secs', 0.0),
-            'Exercise_Encoded': ex_encoded,
-            'Day': data.get('day', 1),
-            'Month': data.get('month', 1),
-            'Avg_Reps': data.get('avg_reps', 0.0),
-            'Max_Reps': data.get('max_reps', 0),
-            'Min_Reps': data.get('min_reps', 0)
-        }
-        
-        input_df = pd.DataFrame([feats])
-        pred_encoded = simple_perf_model.predict(input_df)[0]
-        
-        prob = 0.88
-        if hasattr(simple_perf_model, "predict_proba"):
-            proba = simple_perf_model.predict_proba(input_df)[0]
-            prob = float(proba[int(pred_encoded)]) if len(proba) > 1 else float(proba[0])
 
-        label = perf_enc.inverse_transform([pred_encoded])[0] if perf_enc else ("Good" if pred_encoded == 1 else "Average")
-        
-        return jsonify({"prediction": label, "probability": prob})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+# --- MODEL LOADING (XGBOOST FORECASTING) ---
+xgb_forecasting_model = None
+try:
+    xgb_path = os.path.join(BASE_DIR, "..", "performance_forecasting_model (1).pkl")
+    if os.path.exists(xgb_path):
+        xgb_forecasting_model = joblib.load(xgb_path)
+        print("XGBoost Forecasting Model loaded.")
+except Exception as e:
+    print(f"XGBoost Forecasting Load Error: {e}")
 
 
 # --- ENDPOINT: LSTM PERFORMANCE ---
 @app.route('/predict_lstm', methods=['POST'])
 def predict_lstm():
+    print(f"[/predict_lstm] Received request!")
     if lstm_model is None:
+        print(f"[/predict_lstm] Error: LSTM Model not loaded")
         return jsonify({"error": "LSTM Model not loaded"}), 500
     try:
         data = request.get_json()
+        print(f"[/predict_lstm] Parsed JSON data successfully")
         sessions = data.get('sessions', [])
-        if len(sessions) != 3:
-            return jsonify({"error": "Exactly 3 sessions required"}), 400
+        
+        if not sessions:
+            return jsonify({"error": "No sessions provided"}), 400
+            
+        if len(sessions) > 3:
+            sessions = sessions[-3:]
+        while len(sessions) < 3:
+            sessions.insert(0, sessions[0].copy())
 
         processed = []
         for s in sessions:
@@ -130,15 +101,22 @@ def predict_lstm():
             processed.append(np.concatenate(([name_enc, ex_enc_val], scaled)))
 
         lstm_input = np.array([processed])
-        prob = lstm_model.predict(lstm_input)[0][0]
+        print(f"[/predict_lstm] Running inference...")
+        
+        # Use model() instead of model.predict() to avoid Flask threading/memory issues
+        prob = lstm_model(lstm_input, training=False).numpy()[0][0]
+        
+        print(f"[/predict_lstm] Inference complete! prob: {prob}")
         return jsonify({"prediction": "Good" if prob >= 0.5 else "Average", "probability": float(prob)})
     except Exception as e:
+        print(f"[/predict_lstm] ERROR: {e}")
         return jsonify({"error": str(e)}), 400
 
 
 # --- ENDPOINT: INJURY RISK ---
 @app.route('/predict-injury-risk', methods=['POST'])
 def predict_injury():
+    print(f"[/predict-injury-risk] Received request!")
     if injury_model is None:
         return jsonify({"error": "Injury Risk Model not loaded"}), 500
     try:
@@ -169,6 +147,39 @@ def predict_injury():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+# --- ENDPOINT: XGBOOST FORECASTING ---
+@app.route('/forecast_performance', methods=['POST'])
+def forecast_performance():
+    print(f"[/forecast_performance] Received request!")
+    if xgb_forecasting_model is None:
+        return jsonify({"error": "XGBoost Forecasting Model not loaded"}), 500
+    try:
+        data = request.get_json(silent=True) or {}
+        
+        # Expected exact features
+        feature_names = [
+            "intensity", "total_reps", "prev_reps", "prev_intensity",
+            "rolling_avg_reps_3", "rolling_avg_intensity_3", "rolling_volume_7d",
+            "days_since_last", "week_of_year"
+        ]
+        
+        feats = [float(data.get(f, 0.0)) for f in feature_names]
+        input_df = pd.DataFrame([feats], columns=feature_names)
+        
+        print(f"[/forecast_performance] Running inference...")
+        prediction = xgb_forecasting_model.predict(input_df)[0]
+        print(f"[/forecast_performance] Inference complete! prediction: {prediction}")
+        
+        return jsonify({
+            "predicted_next_reps": float(prediction)
+        })
+    except Exception as e:
+        import traceback
+        print("XGBoost Endpoint Error:", str(e))
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 400
 
 
 # --- ENDPOINT: GEMINI AI RISK SUGGESTIONS ---

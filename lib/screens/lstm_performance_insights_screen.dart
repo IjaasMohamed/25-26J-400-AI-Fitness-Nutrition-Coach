@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pose_detection_realtime/models/lstm_prediction_models.dart';
+import 'package:pose_detection_realtime/models/forecasting_result.dart';
 import 'package:pose_detection_realtime/services/lstm_prediction_service.dart';
+import 'package:pose_detection_realtime/services/xgboost_forecasting_service.dart';
 import 'package:pose_detection_realtime/theme/app_theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -14,7 +16,9 @@ class LSTMAdvancedInsightsScreen extends StatefulWidget {
 
 class _LSTMAdvancedInsightsScreenState extends State<LSTMAdvancedInsightsScreen> {
   final LSTMPredictionService _service = LSTMPredictionService();
+  final XGBoostForecastingService _xgbService = XGBoostForecastingService();
   LSTMPredictionResponse? _data;
+  ForecastingResult? _xgbForecast;
   String? _error;
   bool _isLoading = true;
 
@@ -27,9 +31,16 @@ class _LSTMAdvancedInsightsScreenState extends State<LSTMAdvancedInsightsScreen>
   Future<void> _fetchInsights() async {
     setState(() => _isLoading = true);
     final result = await _service.getLSTMPrediction(exerciseName: widget.exerciseName);
+    
+    ForecastingResult? xgbForecast;
+    final exName = widget.exerciseName ?? "Push Ups";
+    final rawName = exName.toLowerCase().replaceAll(' ', '_');
+    xgbForecast = await _xgbService.predictNextReps(rawName);
+
     if (mounted) {
       setState(() {
         _data = result.data;
+        _xgbForecast = xgbForecast;
         _error = result.error;
         _isLoading = false;
       });
@@ -101,6 +112,10 @@ class _LSTMAdvancedInsightsScreenState extends State<LSTMAdvancedInsightsScreen>
           const SizedBox(height: 20),
           _buildMetricsGrid(),
           const SizedBox(height: 20),
+          if (_xgbForecast != null) ...[
+            _buildXGBoostForecastCard(),
+            const SizedBox(height: 20),
+          ],
           _buildPerformanceForecastCard(),
           const SizedBox(height: 20),
           _buildCoachingTipsCard(),
@@ -217,7 +232,50 @@ class _LSTMAdvancedInsightsScreenState extends State<LSTMAdvancedInsightsScreen>
     );
   }
 
-
+  Widget _buildXGBoostForecastCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.secondary.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.secondary.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.secondary.withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.batch_prediction, color: AppTheme.secondary, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'XGBOOST NEXT REPS FORECAST',
+                  style: TextStyle(color: AppTheme.secondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_xgbForecast!.predictedNextReps.toStringAsFixed(1)} reps',
+                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Based on rolling volume & intensity data',
+                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildPerformanceForecastCard() {
     if (_data == null || _data!.historicalLabels.isEmpty) return const SizedBox();

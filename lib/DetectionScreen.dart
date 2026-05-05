@@ -668,7 +668,10 @@ class _MyHomePageState extends State<Detectionscreen> with SingleTickerProviderS
     double b = distance(shoulder, elbow);
     double c = distance(shoulder, wrist);
 
-    double angle = acos((b * b + a * a - c * c) / (2 * b * a)) * (180 / pi);
+    if (b == 0 || a == 0) return 0.0;
+
+    double cosVal = ((b * b + a * a - c * c) / (2 * b * a)).clamp(-1.0, 1.0);
+    double angle = acos(cosVal) * (180 / pi);
     return angle;
   }
 

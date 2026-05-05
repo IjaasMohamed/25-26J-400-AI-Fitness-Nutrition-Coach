@@ -24,6 +24,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
   double _frequency = 0;
   double _avgDuration = 0;
   double _avgIntensity = 0;
+  double _avgAsymmetry = 0.0;
   int _injuryCount = 0;
   String _lastHeartRate = '-';
 
@@ -33,6 +34,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
   String? _suggestionsError;
 
   // Chat
+  final GlobalKey _chatSectionKey = GlobalKey();
   final TextEditingController _chatController = TextEditingController();
   final List<_ChatMessage> _chatMessages = [];
   bool _isChatLoading = false;
@@ -82,7 +84,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
       try {
       final setsDataRaw = await Supabase.instance.client
           .from('exercise_sets')
-          .select('created_at, exercise_date, intensity, heart_rate')
+          .select('created_at, exercise_date, intensity, heart_rate, muscle_asymmetry_score')
           .eq('user_id', user.id)
           .gte('created_at', thirtyDaysAgo);
         
@@ -103,9 +105,11 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
           for (var times in setsByDay.values) {
             if (times.length > 1) {
               times.sort();
-              totalMinutes += times.last.difference(times.first).inMinutes.toDouble();
+              var diffMinutes = times.last.difference(times.first).inSeconds / 60.0;
+              double minRealisticDuration = times.length * 3.0; // Assume at least 3 mins per set
+              totalMinutes += (diffMinutes < minRealisticDuration) ? minRealisticDuration : diffMinutes;
             } else {
-              totalMinutes += 15;
+              totalMinutes += 15.0;
             }
           }
           _avgDuration = totalMinutes / setsByDay.length;
@@ -116,6 +120,13 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
               .map((s) => (s['intensity'] as num).toDouble())
               .toList();
           _avgIntensity = intensities.isEmpty ? 5.0 : intensities.reduce((a, b) => a + b) / intensities.length;
+
+          // Calculate Average Muscle Asymmetry
+          final asymmetries = setsData
+              .where((s) => s.containsKey('muscle_asymmetry_score') && s['muscle_asymmetry_score'] != null)
+              .map((s) => (s['muscle_asymmetry_score'] as num).toDouble())
+              .toList();
+          _avgAsymmetry = asymmetries.isEmpty ? 0.0 : asymmetries.reduce((a, b) => a + b) / asymmetries.length;
 
           // Get last heart rate
           final hrSets = setsData.where((s) => s['heart_rate'] != null).toList();
@@ -158,7 +169,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
         trainingDuration: _avgDuration,
         warmupTime: 10.0,
         flexibilityScore: 50.0,
-        muscleAsymmetry: 0.0,
+        muscleAsymmetry: _avgAsymmetry,
         injuryHistory: _injuryCount,
         trainingIntensity: _avgIntensity,
       );
@@ -248,11 +259,30 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80.0), // Push above bottom nav bar
+        child: FloatingActionButton(
+          backgroundColor: AppTheme.secondary,
+          onPressed: () {
+            if (_chatSectionKey.currentContext != null) {
+              Scrollable.ensureVisible(
+                _chatSectionKey.currentContext!,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+              );
+            }
+          },
+          tooltip: 'Ask AI',
+          child: const Icon(Icons.auto_awesome, color: Colors.white),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           const SizedBox(height: 40),
           const Text(
             'Injury Risk Dashboard',
@@ -300,15 +330,14 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
                     _buildAiSuggestionsSection(),
                     const SizedBox(height: 24),
                     _buildChatSection(),
-                    const SizedBox(height: 30),
-                    _buildInfoCard(),
+                    const SizedBox(height: 100), // Extra space to clear bottom navigation bar
                   ],
                 ),
               ),
             ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildRiskCard() {
@@ -338,7 +367,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'AI Confidence: ${(_prediction!.probability * 100).toStringAsFixed(1)}%',
+            'Level: ${(_prediction!.probability * 100).toStringAsFixed(1)}%',
             style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
           const SizedBox(height: 20),
@@ -360,6 +389,94 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () => _showModelInputsModal(context),
+            icon: const Icon(Icons.analytics_outlined, color: Colors.white70, size: 18),
+            label: const Text('Details', style: TextStyle(color: Colors.white70)),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.white.withAlpha(10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showModelInputsModal(BuildContext context) {
+    if (_lastRequest == null) return;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A2E), // AppTheme.bgDark fallback
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: Colors.white.withAlpha(20)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.data_object, color: AppTheme.secondary),
+                      SizedBox(width: 8),
+                      Text('Your details:', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'These are the real-time biometric and historical metrics sent to the predictive model.',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildInputRow('Age', '${_lastRequest!.age.toStringAsFixed(0)} yrs'),
+                    _buildInputRow('Gender', _lastRequest!.gender == 1 ? 'Male' : 'Female'),
+                    _buildInputRow('Height', '${_lastRequest!.heightCm.toStringAsFixed(1)} cm'),
+                    _buildInputRow('Weight', '${_lastRequest!.weightKg.toStringAsFixed(1)} kg'),
+                    _buildInputRow('BMI', _lastRequest!.bmi.toStringAsFixed(1)),
+                    const Divider(color: Colors.white12, height: 24),
+                    _buildInputRow('Training Frequency', '${_lastRequest!.trainingFrequency.toStringAsFixed(1)} days/wk'),
+                    _buildInputRow('Training Duration', '${_lastRequest!.trainingDuration.toStringAsFixed(1)} mins'),
+                    _buildInputRow('Training Intensity', _lastRequest!.trainingIntensity.toStringAsFixed(1)),
+                    _buildInputRow('Injury History (Count)', _lastRequest!.injuryHistory.toString()),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInputRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 15)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -375,7 +492,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
       childAspectRatio: 1.5,
       children: [
         _buildStatItem('Frequency', '${_frequency.toStringAsFixed(1)}', 'days/wk', Icons.calendar_today),
-        _buildStatItem('Duration', '${_avgDuration.toStringAsFixed(0)}', 'mins', Icons.timer),
+        _buildStatItem('Duration', _avgDuration.toStringAsFixed(1), 'mins', Icons.timer),
         _buildStatItem('Last HR', _lastHeartRate, 'bpm', Icons.favorite),
         _buildStatItem('Intensity', '${_avgIntensity.toStringAsFixed(1)}', 'avg', Icons.bolt),
       ],
@@ -599,6 +716,7 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
   // --- CHAT SECTION ---
   Widget _buildChatSection() {
     return Container(
+      key: _chatSectionKey,
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -690,28 +808,6 @@ class _RiskDashboardScreenState extends State<RiskDashboardScreen> {
     );
   }
 
-  Widget _buildInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withAlpha(30),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withAlpha(80)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline, color: Colors.blue, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Your risk is calculated based on consistency, intensity, and historical injury data. Keep working out to refresh your score!',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ChatMessage {
