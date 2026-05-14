@@ -50,3 +50,33 @@
 48. Memory management: ensuring PoseDetector is closed on screen dispose.
 49. Improving frame rate by offloading heavy math to doPoseEstimationOnFrame.
 50. Finalizing the implementation notes for the detection and tracking modules.
+51. Implementing time_since_last_rep tracking using precise DateTime differentials in _recordRep.
+52. Developing _checkScheduledTarget logic to automate set transitions based on Supabase schedule parameters.
+53. Integration of actual_rest_time_seconds update logic to track real-world recovery between sets.
+54. Implementing _launchNextScheduleItem for automated exercise chaining in scheduled workouts.
+55. Developing the FormAnalyzer state machine to track worst-case form scores and issues per rep.
+56. Implementing rule-sets for "Hip Sag" and "Hip Pike" detection in Push-ups using torso angle thresholds.
+57. Developing "Knee Cave" detection for Squats based on relative horizontal distance between knees and ankles.
+58. Implementing "Low Knees" detection for High Knees using vertical landmark comparisons.
+59. Developing "Arms Low" and "Legs Narrow" feedback logic for Jumping Jacks.
+60. Configuration of Google Gemini API credentials (API key, model selection: gemini-2.5-flash-lite) and REST API URL construction in unified_backend.py.
+61. Design of the `/risk-suggestions` endpoint prompt engineering: crafting the FitForge AI Safety Advisor system prompt with user metrics context injection.
+62. Implementation of structured JSON output enforcement using Gemini's `responseMimeType: "application/json"` generation config parameter.
+63. Development of the risk profile context builder transforming raw API features into human-readable metric descriptions for LLM comprehension.
+64. Implementation of JSON response parsing with markdown fence stripping, missing-field defaults, and graceful fallback suggestions on parse failure.
+65. Design of the `/risk-chat` follow-up endpoint for conversational AI interaction with injected risk profile context and concise response constraints.
+66. Implementation of rate-limiting strategy through model tier selection (gemini-2.5-flash-lite) and 30-second backend timeout configuration.
+67. Development of GrokSuggestionService.fetchSuggestions() combining 12 risk metrics + prediction result into a single POST request to `/risk-suggestions`.
+68. Development of GrokSuggestionService.sendChatMessage() for follow-up conversations with optional risk_context injection for personalized AI responses.
+69. Implementation of the AI Safety Advisor section in RiskDashboardScreen with gradient header, loading spinner, error retry, and suggestion card rendering.
+70. Development of priority-based suggestion cards with color-coded indicators (🔴 High / 🟡 Medium / 🟢 Low), priority badges, and detailed descriptions.
+71. Implementation of the interactive chat section with scrollable message list, user/AI message bubble styling, and real-time loading state management.
+72. Integration of auto-triggered AI suggestions on RiskDashboardScreen: automatically calling _fetchGrokSuggestions() after successful risk prediction completion.
+73. Implementation of the AI suggestion card in InjuryRiskScreen (manual input flow) with warning banner, priority-colored suggestion items, and icon-labeled header.
+74. End-to-end testing of the Gemini AI chatbot pipeline: verifying prompt delivery, response parsing, error recovery, and UI rendering across both dashboard and manual screens.
+75. Preparing the final project presentation slide deck covering system architecture, methodology, results, and live demonstration plan.
+76. Designing presentation diagrams illustrating the end-to-end data flow from pose detection through ML prediction to AI chatbot feedback.
+77. Creating live demonstration scripts and pre-recorded backup videos showcasing real-time exercise detection, injury risk prediction, and AI chatbot interaction.
+78. Conducting mock viva sessions to rehearse technical defense of design decisions, model evaluation metrics, and system integration choices.
+79. Compiling and organizing the complete source code repository, research documentation, and supplementary materials for final submission.
+80. Performing a final verification of all project deliverables against the initial research objectives and marking criteria.

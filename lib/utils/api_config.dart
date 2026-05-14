@@ -4,7 +4,7 @@ class ApiConfig {
   // 2. Replace '10.0.2.2' with that IP (e.g., '192.168.1.15')
   // 3. Ensure both phone and PC are on the same WiFi network
   
-  static const String serverIp = "172.20.10.3"; // UPDATED for physical device
+  static const String serverIp = "10.111.11.164"; // UPDATED for physical device
   
   static const String lstmPerformanceApiUrl = "http://$serverIp:5000/predict_lstm";
   static const String injuryRiskApiUrl = "http://$serverIp:5000/predict-injury-risk";
